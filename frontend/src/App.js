@@ -12,6 +12,7 @@ import Alerts from './pages/Alerts';
 import Settings from './pages/Settings';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner';
+import NotFound from './components/NotFound/NotFound';
 import './App.css';
 
 /**
