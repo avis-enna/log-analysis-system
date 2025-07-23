@@ -15,6 +15,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
@@ -282,7 +283,7 @@ class LogAnalysisE2ETest {
         page.waitForTimeout(2000);
         
         // Verify real-time indicator is active
-        assertThat(page.locator("[data-testid='realtime-indicator']")).hasClass(/.*active.*/);
+        assertThat(page.locator("[data-testid='realtime-indicator']")).hasClass(Pattern.compile(".*active.*"));
         
         // Verify log stream is visible
         assertThat(page.locator("[data-testid='realtime-logs']")).isVisible();

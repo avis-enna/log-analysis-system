@@ -203,10 +203,30 @@ public class LogEntry {
     public boolean isHttpLog() {
         return httpMethod != null && httpUrl != null;
     }
-    
+
+    /**
+     * Adds metadata to the log entry.
+     */
+    public void addMetadata(String key, String value) {
+        if (this.metadata == null) {
+            this.metadata = new java.util.HashMap<>();
+        }
+        this.metadata.put(key, value);
+    }
+
+    /**
+     * Adds a tag to the log entry.
+     */
+    public void addTag(String tag) {
+        if (this.tags == null) {
+            this.tags = new java.util.HashMap<>();
+        }
+        this.tags.put(tag, "true");
+    }
+
     @Override
     public String toString() {
-        return String.format("LogEntry{id='%s', timestamp=%s, level='%s', message='%s', source='%s'}", 
+        return String.format("LogEntry{id='%s', timestamp=%s, level='%s', message='%s', source='%s'}",
                            id, timestamp, level, message, source);
     }
 }
