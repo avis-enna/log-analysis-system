@@ -1,0 +1,67 @@
+version: '3.8'
+
+# Simplified Podman setup with just essential services
+services:
+  # PostgreSQL Database
+  postgres:
+    image: docker.io/postgres:15
+    container_name: log-analyzer-postgres-simple
+    environment:
+      POSTGRES_DB: loganalyzer
+      POSTGRES_USER: loganalyzer
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_simple_data:/var/lib/postgresql/data
+
+  # Backend Application (with embedded services)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: log-analyzer-backend-simple
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      # Use PostgreSQL instead of H2
+      DATABASE_URL: jdbc:postgresql://postgres:5432/loganalyzer
+      DATABASE_USERNAME: loganalyzer
+      DATABASE_PASSWORD: password
+      
+      # Disable external services (use embedded/mock versions)
+      ELASTICSEARCH_ENABLED: false
+      REDIS_ENABLED: false
+      KAFKA_ENABLED: false
+      INFLUXDB_ENABLED: false
+      
+      # Application settings
+      SPRING_PROFILES_ACTIVE: simple
+      LOG_LEVEL: INFO
+      
+      # Generate sample data
+      TEST_DATA_ENABLED: true
+      TEST_DATA_GENERATE_ON_STARTUP: true
+      TEST_DATA_LOG_COUNT: 1000
+    volumes:
+      - ./logs:/app/logs
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: log-analyzer-frontend-simple
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api/v1
+      NODE_ENV: production
+
+volumes:
+  postgres_simple_data:
+    driver: local
