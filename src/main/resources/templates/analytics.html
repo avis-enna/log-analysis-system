@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Analytics - Enterprise SOC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-dark: #1a1d29;
+            --secondary-dark: #252836;
+            --accent-blue: #00d4ff;
+            --accent-green: #00ff88;
+            --accent-red: #ff3366;
+            --accent-orange: #ff9500;
+            --accent-purple: #8b5cf6;
+            --text-primary: #ffffff;
+            --text-secondary: #b4b7c9;
+        }
+        
+        body {
+            background: var(--primary-dark);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        .enterprise-header {
+            background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--primary-dark) 100%);
+            border-bottom: 2px solid var(--accent-blue);
+            padding: 1rem 0;
+        }
+        
+        .sidebar {
+            background: var(--secondary-dark);
+            min-height: calc(100vh - 80px);
+            border-right: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            padding: 0.75rem 1.5rem;
+            margin: 0.25rem 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--accent-blue);
+            transform: translateX(5px);
+        }
+        
+        .content-area {
+            background: var(--primary-dark);
+            min-height: calc(100vh - 80px);
+        }
+        
+        .analytics-card {
+            background: var(--secondary-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .analytics-card:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.15);
+        }
+        
+        .metric-card {
+            background: var(--secondary-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .metric-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .metric-change {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .btn-enterprise {
+            background: linear-gradient(135deg, var(--accent-blue), #0099cc);
+            border: none;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-enterprise:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+            color: white;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+        
+        .threat-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .threat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--accent-red);
+        }
+        
+        .threat-item.medium {
+            border-left-color: var(--accent-orange);
+        }
+        
+        .threat-item.low {
+            border-left-color: var(--accent-green);
+        }
+        
+        .intel-tag {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--accent-blue);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+        
+        .performance-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .indicator-label {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .indicator-bar {
+            flex: 2;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 1rem;
+        }
+        
+        .indicator-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .tabs-nav {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .tab-button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active,
+        .tab-button:hover {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="enterprise-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-shield-alt text-primary me-2"></i>
+                        Enterprise SOC Platform
+                    </h1>
+                    <small class="text-muted">Threat Analytics & Intelligence Center</small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="badge bg-success me-2">
+                        <i class="fas fa-circle fa-xs me-1"></i>
+                        Analytics Online
+                    </span>
+                    <span class="text-muted" id="currentTime"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 p-0">
+                <nav class="sidebar">
+                    <div class="p-3">
+                        <h6 class="text-uppercase text-muted mb-3">Navigation</h6>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/">
+                                    <i class="fas fa-tachometer-alt me-2"></i>
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/search">
+                                    <i class="fas fa-search me-2"></i>
+                                    Search
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/alerts">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Alerts
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="/analytics">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Analytics
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 content-area p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Threat Analytics & Intelligence</h2>
+                    <div>
+                        <button class="btn btn-enterprise me-2" onclick="refreshAnalytics()">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Refresh Data
+                        </button>
+                        <button class="btn btn-outline-info" onclick="exportReport()">
+                            <i class="fas fa-download me-1"></i>
+                            Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Key Metrics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <i class="fas fa-virus text-danger fa-2x"></i>
+                            <div class="metric-number text-danger" id="threatCount">1,247</div>
+                            <div class="text-muted">Threats Detected</div>
+                            <div class="metric-change text-danger">
+                                <i class="fas fa-arrow-up"></i> +12% vs yesterday
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <i class="fas fa-globe text-info fa-2x"></i>
+                            <div class="metric-number text-info" id="ipCount">89</div>
+                            <div class="text-muted">Malicious IPs</div>
+                            <div class="metric-change text-success">
+                                <i class="fas fa-arrow-down"></i> -5% vs yesterday
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <i class="fas fa-bug text-warning fa-2x"></i>
+                            <div class="metric-number text-warning" id="malwareCount">34</div>
+                            <div class="text-muted">Malware Samples</div>
+                            <div class="metric-change text-warning">
+                                <i class="fas fa-minus"></i> No change
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <i class="fas fa-shield-alt text-success fa-2x"></i>
+                            <div class="metric-number text-success" id="blockedCount">5,672</div>
+                            <div class="text-muted">Threats Blocked</div>
+                            <div class="metric-change text-success">
+                                <i class="fas fa-arrow-up"></i> +8% vs yesterday
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tabs -->
+                <div class="tabs-nav">
+                    <button class="tab-button active" onclick="switchTab('overview')">Overview</button>
+                    <button class="tab-button" onclick="switchTab('threats')">Threat Intelligence</button>
+                    <button class="tab-button" onclick="switchTab('performance')">Performance</button>
+                    <button class="tab-button" onclick="switchTab('trends')">Trends</button>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="overview" class="tab-content active">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-chart-area me-2"></i>
+                                    Threat Detection Timeline
+                                </h5>
+                                <div class="chart-container">
+                                    <canvas id="threatTimelineChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-chart-pie me-2"></i>
+                                    Threat Categories
+                                </h5>
+                                <div class="chart-container">
+                                    <canvas id="threatCategoriesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-globe me-2"></i>
+                                    Geographic Distribution
+                                </h5>
+                                <div class="chart-container">
+                                    <canvas id="geoChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-network-wired me-2"></i>
+                                    Attack Vectors
+                                </h5>
+                                <div class="chart-container">
+                                    <canvas id="attackVectorsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threat Intelligence Tab -->
+                <div id="threats" class="tab-content">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-rss me-2"></i>
+                                    Live Threat Intelligence Feed
+                                </h5>
+                                <div class="threat-feed" id="threatFeed">
+                                    <!-- Threat items will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-tags me-2"></i>
+                                    Intelligence Tags
+                                </h5>
+                                <div>
+                                    <span class="intel-tag">APT</span>
+                                    <span class="intel-tag">Malware</span>
+                                    <span class="intel-tag">Phishing</span>
+                                    <span class="intel-tag">Ransomware</span>
+                                    <span class="intel-tag">Botnet</span>
+                                    <span class="intel-tag">C2</span>
+                                    <span class="intel-tag">Exploit</span>
+                                    <span class="intel-tag">IOC</span>
+                                </div>
+                                
+                                <h6 class="mt-4 mb-3">Top Threat Actors</h6>
+                                <div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Lazarus Group</span>
+                                        <span class="text-danger">Critical</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>APT29 (Cozy Bear)</span>
+                                        <span class="text-warning">High</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>FIN7</span>
+                                        <span class="text-warning">High</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Carbanak</span>
+                                        <span class="text-info">Medium</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Tab -->
+                <div id="performance" class="tab-content">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-tachometer-alt me-2"></i>
+                                    System Performance
+                                </h5>
+                                <div class="performance-indicator">
+                                    <span class="indicator-label">Detection Rate</span>
+                                    <div class="indicator-bar">
+                                        <div class="indicator-fill bg-success" style="width: 95%"></div>
+                                    </div>
+                                    <span class="text-success">95%</span>
+                                </div>
+                                <div class="performance-indicator">
+                                    <span class="indicator-label">False Positive Rate</span>
+                                    <div class="indicator-bar">
+                                        <div class="indicator-fill bg-warning" style="width: 15%"></div>
+                                    </div>
+                                    <span class="text-warning">15%</span>
+                                </div>
+                                <div class="performance-indicator">
+                                    <span class="indicator-label">Response Time</span>
+                                    <div class="indicator-bar">
+                                        <div class="indicator-fill bg-info" style="width: 80%"></div>
+                                    </div>
+                                    <span class="text-info">1.2s avg</span>
+                                </div>
+                                <div class="performance-indicator">
+                                    <span class="indicator-label">System Load</span>
+                                    <div class="indicator-bar">
+                                        <div class="indicator-fill bg-danger" style="width: 70%"></div>
+                                    </div>
+                                    <span class="text-danger">70%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="analytics-card p-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Processing Metrics
+                                </h5>
+                                <div class="chart-container">
+                                    <canvas id="performanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trends Tab -->
+                <div id="trends" class="tab-content">
+                    <div class="analytics-card p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-trending-up me-2"></i>
+                            Security Trends Analysis
+                        </h5>
+                        <div class="chart-container" style="height: 400px;">
+                            <canvas id="trendsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => button.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Initialize charts for the selected tab
+            setTimeout(() => initializeCharts(tabName), 100);
+        }
+
+        // Sample threat intelligence data
+        const threatIntelData = [
+            {
+                type: 'Malware',
+                description: 'New Emotet variant detected targeting financial institutions',
+                severity: 'high',
+                source: 'ThreatConnect',
+                timestamp: '2024-01-15 14:23:00',
+                iocs: ['hash:d41d8cd98f00b204e9800998ecf8427e', 'ip:192.0.2.1']
+            },
+            {
+                type: 'Phishing',
+                description: 'Large-scale phishing campaign impersonating Microsoft',
+                severity: 'medium',
+                source: 'PhishTank',
+                timestamp: '2024-01-15 14:18:00',
+                iocs: ['domain:fake-microsoft.com', 'ip:198.51.100.1']
+            },
+            {
+                type: 'APT',
+                description: 'APT29 infrastructure identified in corporate networks',
+                severity: 'high',
+                source: 'MISP',
+                timestamp: '2024-01-15 14:15:00',
+                iocs: ['ip:203.0.113.1', 'domain:apt29-c2.com']
+            }
+        ];
+
+        // Render threat intelligence feed
+        function renderThreatFeed() {
+            const threatFeed = document.getElementById('threatFeed');
+            threatFeed.innerHTML = '';
+
+            threatIntelData.forEach(threat => {
+                const threatItem = document.createElement('div');
+                threatItem.className = `threat-item ${threat.severity}`;
+                
+                threatItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1">${threat.type}: ${threat.description}</h6>
+                            <small class="text-muted">Source: ${threat.source} • ${threat.timestamp}</small>
+                        </div>
+                        <span class="badge bg-${threat.severity === 'high' ? 'danger' : 'warning'}">${threat.severity.toUpperCase()}</span>
+                    </div>
+                    <div>
+                        <strong>IOCs:</strong> ${threat.iocs.join(', ')}
+                    </div>
+                `;
+                
+                threatFeed.appendChild(threatItem);
+            });
+        }
+
+        // Initialize charts
+        function initializeCharts(activeTab = 'overview') {
+            if (activeTab === 'overview' || !activeTab) {
+                initThreatTimelineChart();
+                initThreatCategoriesChart();
+                initGeoChart();
+                initAttackVectorsChart();
+            } else if (activeTab === 'performance') {
+                initPerformanceChart();
+            } else if (activeTab === 'trends') {
+                initTrendsChart();
+            }
+        }
+
+        function initThreatTimelineChart() {
+            const ctx = document.getElementById('threatTimelineChart');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [{
+                        label: 'Threats Detected',
+                        data: [45, 23, 67, 89, 134, 78],
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        },
+                        x: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initThreatCategoriesChart() {
+            const ctx = document.getElementById('threatCategoriesChart');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Malware', 'Phishing', 'DDoS', 'Intrusion', 'Other'],
+                    datasets: [{
+                        data: [35, 25, 15, 15, 10],
+                        backgroundColor: ['#ff3366', '#ff9500', '#00d4ff', '#00ff88', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#b4b7c9' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initGeoChart() {
+            const ctx = document.getElementById('geoChart');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['USA', 'China', 'Russia', 'Brazil', 'India'],
+                    datasets: [{
+                        label: 'Threat Origins',
+                        data: [156, 134, 89, 67, 45],
+                        backgroundColor: '#00d4ff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        },
+                        x: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initAttackVectorsChart() {
+            const ctx = document.getElementById('attackVectorsChart');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Email', 'Web', 'Network', 'USB', 'Social', 'Physical'],
+                    datasets: [{
+                        label: 'Attack Frequency',
+                        data: [85, 70, 60, 25, 45, 15],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        pointBackgroundColor: '#00ff88'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        r: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: { color: '#b4b7c9' },
+                            ticks: { color: '#b4b7c9', backdropColor: 'transparent' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initPerformanceChart() {
+            const ctx = document.getElementById('performanceChart');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Events/sec',
+                        data: [1200, 1350, 1100, 1500, 1800, 1400, 1000],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#b4b7c9' } }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        },
+                        x: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initTrendsChart() {
+            const ctx = document.getElementById('trendsChart');
+            if (!ctx) return;
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [
+                        {
+                            label: 'Malware',
+                            data: [45, 52, 48, 67, 89, 95, 78, 85, 92, 88, 76, 82],
+                            borderColor: '#ff3366',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Phishing',
+                            data: [25, 35, 42, 38, 45, 52, 48, 55, 58, 62, 59, 65],
+                            borderColor: '#ff9500',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'DDoS',
+                            data: [15, 18, 22, 25, 28, 24, 26, 30, 35, 32, 38, 42],
+                            borderColor: '#00d4ff',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#b4b7c9' } }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        },
+                        x: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#b4b7c9' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Utility functions
+        function refreshAnalytics() {
+            // Simulate data refresh
+            console.log('Refreshing analytics data...');
+            initializeCharts();
+            renderThreatFeed();
+        }
+
+        function exportReport() {
+            // Simulate report export
+            alert('Analytics report exported successfully!');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            renderThreatFeed();
+        });
+    </script>
+</body>
+</html>

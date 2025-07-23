@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Log Analysis System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+    <style>
+        .card-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .card-stats .card-body {
+            padding: 2rem;
+        }
+        .card-stats h3 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .card-stats .stats-icon {
+            font-size: 3rem;
+            opacity: 0.3;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+        .main-content {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        .alert-badge {
+            position: relative;
+            top: -2px;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        .log-level-error {
+            background: #ffeaa7;
+            border-left: 4px solid #e17055;
+        }
+        .log-level-warning {
+            background: #fab1a0;
+            border-left: 4px solid #e84393;
+        }
+        .log-level-info {
+            background: #a8e6cf;
+            border-left: 4px solid #00b894;
+        }
+        .real-time-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-light mb-4">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Log Analysis
+                    </h4>
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="/">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Dashboard
+                        </a>
+                        <a class="nav-link" href="/logs">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Logs
+                        </a>
+                        <a class="nav-link" href="/alerts">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Alerts
+                            <span class="badge bg-danger ms-2 alert-badge" id="alertCount">0</span>
+                        </a>
+                        <a class="nav-link" href="/analytics">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Analytics
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">
+                            <i class="fas fa-tachometer-alt me-2 text-primary"></i>
+                            Dashboard
+                        </h1>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-success me-2 real-time-indicator">
+                                <i class="fas fa-circle me-1"></i>
+                                Live
+                            </span>
+                            <small class="text-muted">Last updated: <span id="lastUpdated">Loading...</span></small>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card card-stats">
+                                <div class="card-body position-relative">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <h3 id="totalLogs">0</h3>
+                                            <p class="mb-0">Total Logs</p>
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <i class="fas fa-file-alt stats-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card card-stats">
+                                <div class="card-body position-relative">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <h3 id="errorLogs">0</h3>
+                                            <p class="mb-0">Error Logs</p>
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <i class="fas fa-exclamation-circle stats-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card card-stats">
+                                <div class="card-body position-relative">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <h3 id="activeAlerts">0</h3>
+                                            <p class="mb-0">Active Alerts</p>
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <i class="fas fa-bell stats-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card card-stats">
+                                <div class="card-body position-relative">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <h3 id="sourcesCount">0</h3>
+                                            <p class="mb-0">Sources</p>
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <i class="fas fa-server stats-icon"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        Log Activity Timeline
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="timelineChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-chart-pie me-2"></i>
+                                        Sources Distribution
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="sourcesChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Logs and Alerts -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-file-alt me-2"></i>
+                                        Recent Logs
+                                    </h5>
+                                    <a href="/logs" class="btn btn-sm btn-primary">View All</a>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recentLogs">
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>
+                                            Loading logs...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Recent Alerts
+                                    </h5>
+                                    <a href="/alerts" class="btn btn-sm btn-primary">View All</a>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recentAlerts">
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>
+                                            Loading alerts...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        // Dashboard functionality
+        class Dashboard {
+            constructor() {
+                this.timelineChart = null;
+                this.sourcesChart = null;
+                this.init();
+            }
+
+            init() {
+                this.loadStats();
+                this.loadCharts();
+                this.loadRecentData();
+                
+                // Auto-refresh every 30 seconds
+                setInterval(() => {
+                    this.loadStats();
+                    this.loadRecentData();
+                }, 30000);
+            }
+
+            async loadStats() {
+                try {
+                    const response = await fetch('/api/stats');
+                    const data = await response.json();
+                    
+                    document.getElementById('totalLogs').textContent = data.totalLogs.toLocaleString();
+                    document.getElementById('errorLogs').textContent = data.errorLogs.toLocaleString();
+                    document.getElementById('activeAlerts').textContent = data.unresolvedAlerts.toLocaleString();
+                    document.getElementById('sourcesCount').textContent = data.sources.length;
+                    document.getElementById('alertCount').textContent = data.unresolvedAlerts;
+                    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleTimeString();
+                    
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                }
+            }
+
+            async loadCharts() {
+                await this.loadTimelineChart();
+                await this.loadSourcesChart();
+            }
+
+            async loadTimelineChart() {
+                try {
+                    const response = await fetch('/api/charts/timeline');
+                    const data = await response.json();
+                    
+                    const ctx = document.getElementById('timelineChart').getContext('2d');
+                    
+                    if (this.timelineChart) {
+                        this.timelineChart.destroy();
+                    }
+                    
+                    this.timelineChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.data.map(d => new Date(d[0]).toLocaleTimeString()),
+                            datasets: [
+                                {
+                                    label: 'ERROR',
+                                    data: data.data.filter(d => d[1] === 'ERROR').map(d => d[2]),
+                                    borderColor: '#e74c3c',
+                                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                                    fill: true
+                                },
+                                {
+                                    label: 'WARNING',
+                                    data: data.data.filter(d => d[1] === 'WARNING').map(d => d[2]),
+                                    borderColor: '#f39c12',
+                                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                                    fill: true
+                                },
+                                {
+                                    label: 'INFO',
+                                    data: data.data.filter(d => d[1] === 'INFO').map(d => d[2]),
+                                    borderColor: '#27ae60',
+                                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading timeline chart:', error);
+                }
+            }
+
+            async loadSourcesChart() {
+                try {
+                    const response = await fetch('/api/charts/sources');
+                    const data = await response.json();
+                    
+                    const ctx = document.getElementById('sourcesChart').getContext('2d');
+                    
+                    if (this.sourcesChart) {
+                        this.sourcesChart.destroy();
+                    }
+                    
+                    this.sourcesChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.data.map(d => d[0]),
+                            datasets: [{
+                                data: data.data.map(d => d[1]),
+                                backgroundColor: [
+                                    '#3498db',
+                                    '#e74c3c',
+                                    '#f39c12',
+                                    '#27ae60',
+                                    '#9b59b6',
+                                    '#34495e'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading sources chart:', error);
+                }
+            }
+
+            async loadRecentData() {
+                await this.loadRecentLogs();
+                await this.loadRecentAlerts();
+            }
+
+            async loadRecentLogs() {
+                try {
+                    const response = await fetch('/api/logs?size=5');
+                    const data = await response.json();
+                    
+                    const logsHtml = data.logs.map(log => `
+                        <div class="mb-2 p-2 border-start log-level-${log.level.toLowerCase()}">
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-${this.getLevelColor(log.level)}">${log.level}</span>
+                                <small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small>
+                            </div>
+                            <div class="mt-1">
+                                <strong>${log.source}</strong> - ${log.message.substring(0, 100)}${log.message.length > 100 ? '...' : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('recentLogs').innerHTML = logsHtml;
+                } catch (error) {
+                    console.error('Error loading recent logs:', error);
+                }
+            }
+
+            async loadRecentAlerts() {
+                try {
+                    const response = await fetch('/api/alerts?size=5');
+                    const data = await response.json();
+                    
+                    const alertsHtml = data.alerts.map(alert => `
+                        <div class="mb-2 p-2 border-start border-${this.getSeverityColor(alert.severity)} border-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-${this.getSeverityColor(alert.severity)}">${alert.severity}</span>
+                                <small class="text-muted">${new Date(alert.createdAt).toLocaleString()}</small>
+                            </div>
+                            <div class="mt-1">
+                                <strong>${alert.type}</strong> - ${alert.message.substring(0, 80)}${alert.message.length > 80 ? '...' : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('recentAlerts').innerHTML = alertsHtml;
+                } catch (error) {
+                    console.error('Error loading recent alerts:', error);
+                }
+            }
+
+            getLevelColor(level) {
+                switch(level) {
+                    case 'ERROR': return 'danger';
+                    case 'WARNING': return 'warning';
+                    case 'INFO': return 'info';
+                    default: return 'secondary';
+                }
+            }
+
+            getSeverityColor(severity) {
+                switch(severity) {
+                    case 'CRITICAL': return 'danger';
+                    case 'HIGH': return 'warning';
+                    case 'MEDIUM': return 'info';
+                    case 'LOW': return 'success';
+                    default: return 'secondary';
+                }
+            }
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new Dashboard();
+        });
+    </script>
+</body>
+</html>

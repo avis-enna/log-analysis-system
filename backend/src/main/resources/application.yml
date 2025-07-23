@@ -1,0 +1,221 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: log-analyzer
+  
+  # Database Configuration
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/loganalyzer}
+    username: ${DATABASE_USERNAME:loganalyzer}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+    consumer:
+      group-id: log-analyzer-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.loganalyzer.dto"
+    streams:
+      application-id: log-analyzer-streams
+      properties:
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
+        commit.interval.ms: 1000
+        cache.max.bytes.buffering: 10240
+        state.dir: ${KAFKA_STREAMS_STATE_DIR:/tmp/kafka-streams}
+
+# Elasticsearch Configuration
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST:localhost}
+  port: ${ELASTICSEARCH_PORT:9200}
+  username: ${ELASTICSEARCH_USERNAME:}
+  password: ${ELASTICSEARCH_PASSWORD:}
+  connection-timeout: 5000
+  socket-timeout: 60000
+  max-retry-timeout: 60000
+  indices:
+    logs:
+      name: logs
+      shards: 3
+      replicas: 1
+      refresh-interval: 1s
+    metrics:
+      name: metrics
+      shards: 2
+      replicas: 1
+      refresh-interval: 5s
+
+# InfluxDB Configuration
+influxdb:
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN:}
+  org: ${INFLUXDB_ORG:loganalyzer}
+  bucket: ${INFLUXDB_BUCKET:logs}
+  connection-timeout: 10000
+  read-timeout: 30000
+  write-timeout: 10000
+
+# Security Configuration
+security:
+  jwt:
+    secret: ${JWT_SECRET:mySecretKey}
+    expiration: 86400000 # 24 hours
+    refresh-expiration: 604800000 # 7 days
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,https://*.railway.app}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+
+# WebSocket Configuration
+websocket:
+  allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:3000,https://*.railway.app}
+  heartbeat:
+    interval: 25000
+    timeout: 60000
+
+# Log Processing Configuration
+log-processing:
+  batch-size: 1000
+  flush-interval: 5000
+  max-queue-size: 10000
+  thread-pool-size: 10
+  patterns:
+    error-keywords: ["ERROR", "FATAL", "EXCEPTION", "FAILED", "TIMEOUT"]
+    warning-keywords: ["WARN", "WARNING", "DEPRECATED", "SLOW"]
+    success-keywords: ["SUCCESS", "COMPLETED", "FINISHED", "OK"]
+  retention:
+    raw-logs: 30d
+    aggregated-data: 90d
+    alerts: 365d
+
+# Alerting Configuration
+alerting:
+  enabled: true
+  check-interval: 60000 # 1 minute
+  notification:
+    email:
+      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:false}
+      smtp:
+        host: ${SMTP_HOST:}
+        port: ${SMTP_PORT:587}
+        username: ${SMTP_USERNAME:}
+        password: ${SMTP_PASSWORD:}
+        from: ${SMTP_FROM:noreply@loganalyzer.com}
+    webhook:
+      enabled: ${WEBHOOK_NOTIFICATIONS_ENABLED:true}
+      timeout: 5000
+      retry-attempts: 3
+
+# Monitoring Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+      sla:
+        http.server.requests: 100ms, 500ms, 1s
+
+# Logging Configuration
+logging:
+  level:
+    com.loganalyzer: ${LOG_LEVEL:INFO}
+    org.springframework.kafka: WARN
+    org.elasticsearch: WARN
+    org.apache.kafka: WARN
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE:logs/log-analyzer.log}
+    max-size: 100MB
+    max-history: 30
+
+# Custom Application Properties
+app:
+  name: Enterprise Log Analysis System
+  version: 1.0.0
+  description: Comprehensive log analysis and monitoring platform
+  features:
+    real-time-processing: true
+    pattern-detection: true
+    alerting: true
+    dashboards: true
+    api-access: true
+  limits:
+    max-search-results: 10000
+    max-dashboard-widgets: 50
+    max-concurrent-searches: 100
+    max-file-upload-size: 100MB
+  cache:
+    ttl:
+      search-results: 300 # 5 minutes
+      dashboard-data: 60 # 1 minute
+      user-sessions: 3600 # 1 hour
+      system-stats: 30 # 30 seconds

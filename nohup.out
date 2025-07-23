@@ -1,0 +1,93 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+2025-07-09 13:27:52.797 - INFO 54144 --- [           main] c.s.l.LogAnalysisSystemApplication       : Starting LogAnalysisSystemApplication v1.0.0 using Java 1.8.0_382 on SSIVARED-M-40YX with PID 54144 (/Users/ssivared/MyResume/log-analysis-system/target/log-analysis-demo-1.0.0.jar started by ssivared in /Users/ssivared/MyResume/log-analysis-system)
+-2025-07-09 13:27:52.799 -DEBUG 54144 --- [           main] c.s.l.LogAnalysisSystemApplication       : Running with Spring Boot v2.7.18, Spring v5.3.31
+-2025-07-09 13:27:52.799 - INFO 54144 --- [           main] c.s.l.LogAnalysisSystemApplication       : The following 1 profile is active: "dev"
+-2025-07-09 13:27:54.205 - INFO 54144 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+-2025-07-09 13:27:54.219 - INFO 54144 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+-2025-07-09 13:27:54.220 - INFO 54144 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+-2025-07-09 13:27:54.334 - INFO 54144 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+-2025-07-09 13:27:54.334 - INFO 54144 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1469 ms
+-2025-07-09 13:27:55.140 - INFO 54144 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoint(s) beneath base path '/actuator'
+-2025-07-09 13:27:55.180 - INFO 54144 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+-2025-07-09 13:27:55.197 - INFO 54144 --- [           main] c.s.l.LogAnalysisSystemApplication       : Started LogAnalysisSystemApplication in 2.909 seconds (JVM running for 3.439)
+-2025-07-09 13:28:11.044 - INFO 54144 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+-2025-07-09 13:28:11.045 - INFO 54144 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+-2025-07-09 13:28:11.046 - INFO 54144 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+-
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+2025-07-09 13:29:28.311 - INFO 56024 --- [           main] c.s.l.LogAnalysisSystemApplication       : Starting LogAnalysisSystemApplication v1.0.0 using Java 1.8.0_382 on SSIVARED-M-40YX with PID 56024 (/Users/ssivared/MyResume/log-analysis-system/target/log-analysis-demo-1.0.0.jar started by ssivared in /Users/ssivared/MyResume/log-analysis-system)
+-2025-07-09 13:29:28.314 -DEBUG 56024 --- [           main] c.s.l.LogAnalysisSystemApplication       : Running with Spring Boot v2.7.18, Spring v5.3.31
+-2025-07-09 13:29:28.314 - INFO 56024 --- [           main] c.s.l.LogAnalysisSystemApplication       : The following 1 profile is active: "dev"
+-2025-07-09 13:29:29.507 - INFO 56024 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+-2025-07-09 13:29:29.517 - INFO 56024 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+-2025-07-09 13:29:29.518 - INFO 56024 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+-2025-07-09 13:29:29.579 - INFO 56024 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+-2025-07-09 13:29:29.580 - INFO 56024 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1212 ms
+-2025-07-09 13:29:30.324 - INFO 56024 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoint(s) beneath base path '/actuator'
+-2025-07-09 13:29:30.375 - INFO 56024 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+-2025-07-09 13:29:30.393 - INFO 56024 --- [           main] c.s.l.LogAnalysisSystemApplication       : Started LogAnalysisSystemApplication in 2.485 seconds (JVM running for 2.89)
+-2025-07-09 13:29:51.280 - INFO 56024 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+-2025-07-09 13:29:51.280 - INFO 56024 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+-2025-07-09 13:29:51.286 - INFO 56024 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+-
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+2025-07-09 13:31:09.678 - INFO 57586 --- [           main] c.s.l.LogAnalysisSystemApplication       : Starting LogAnalysisSystemApplication v1.0.0 using Java 1.8.0_382 on SSIVARED-M-40YX with PID 57586 (/Users/ssivared/MyResume/log-analysis-system/target/log-analysis-demo-1.0.0.jar started by ssivared in /Users/ssivared/MyResume/log-analysis-system)
+-2025-07-09 13:31:09.687 -DEBUG 57586 --- [           main] c.s.l.LogAnalysisSystemApplication       : Running with Spring Boot v2.7.18, Spring v5.3.31
+-2025-07-09 13:31:09.688 - INFO 57586 --- [           main] c.s.l.LogAnalysisSystemApplication       : The following 1 profile is active: "dev"
+-2025-07-09 13:31:11.657 - INFO 57586 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+-2025-07-09 13:31:11.664 - INFO 57586 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+-2025-07-09 13:31:11.665 - INFO 57586 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+-2025-07-09 13:31:11.804 - INFO 57586 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+-2025-07-09 13:31:11.805 - INFO 57586 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2031 ms
+-2025-07-09 13:31:13.329 - INFO 57586 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoint(s) beneath base path '/actuator'
+-2025-07-09 13:31:13.397 - INFO 57586 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+-2025-07-09 13:31:13.419 - INFO 57586 --- [           main] c.s.l.LogAnalysisSystemApplication       : Started LogAnalysisSystemApplication in 4.402 seconds (JVM running for 4.793)
+-2025-07-09 13:32:15.694 - INFO 57586 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+-2025-07-09 13:32:15.695 - INFO 57586 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+-2025-07-09 13:32:15.698 - INFO 57586 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+-
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+2025-07-09 14:02:12.840 - INFO 72535 --- [           main] c.s.l.LogAnalysisSystemApplication       : Starting LogAnalysisSystemApplication v1.0.0 using Java 1.8.0_382 on SSIVARED-M-40YX with PID 72535 (/Users/ssivared/MyResume/log-analysis-system/target/log-analysis-demo-1.0.0.jar started by ssivared in /Users/ssivared/MyResume/log-analysis-system)
+-2025-07-09 14:02:12.843 -DEBUG 72535 --- [           main] c.s.l.LogAnalysisSystemApplication       : Running with Spring Boot v2.7.18, Spring v5.3.31
+-2025-07-09 14:02:12.844 - INFO 72535 --- [           main] c.s.l.LogAnalysisSystemApplication       : The following 1 profile is active: "dev"
+-2025-07-09 14:02:14.121 - INFO 72535 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+-2025-07-09 14:02:14.135 - INFO 72535 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+-2025-07-09 14:02:14.136 - INFO 72535 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+-2025-07-09 14:02:14.229 - INFO 72535 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+-2025-07-09 14:02:14.229 - INFO 72535 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1311 ms
+-2025-07-09 14:02:14.987 - INFO 72535 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoint(s) beneath base path '/actuator'
+-2025-07-09 14:02:15.039 - INFO 72535 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+-2025-07-09 14:02:15.059 - INFO 72535 --- [           main] c.s.l.LogAnalysisSystemApplication       : Started LogAnalysisSystemApplication in 2.701 seconds (JVM running for 3.292)
+-2025-07-09 14:02:42.747 - INFO 72535 --- [nio-8082-exec-3] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+-2025-07-09 14:02:42.750 - INFO 72535 --- [nio-8082-exec-3] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+-2025-07-09 14:02:42.758 - INFO 72535 --- [nio-8082-exec-3] o.s.web.servlet.DispatcherServlet        : Completed initialization in 8 ms
+-
