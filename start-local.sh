@@ -69,21 +69,21 @@ check_node() {
 
 # Check if ports are available
 check_ports() {
-    print_status "Checking if ports 8080 and 3000 are available..."
-    
+    print_status "Checking if ports 8080 and 3001 are available..."
+
     if lsof -i :8080 &> /dev/null; then
         print_error "Port 8080 is already in use. Please stop the process using this port."
         lsof -i :8080
         return 1
     fi
-    
-    if lsof -i :3000 &> /dev/null; then
-        print_error "Port 3000 is already in use. Please stop the process using this port."
-        lsof -i :3000
+
+    if lsof -i :3001 &> /dev/null; then
+        print_error "Port 3001 is already in use. Please stop the process using this port."
+        lsof -i :3001
         return 1
     fi
-    
-    print_success "Ports 8080 and 3000 are available"
+
+    print_success "Ports 8080 and 3001 are available"
     return 0
 }
 
@@ -168,7 +168,7 @@ start_frontend() {
     # Wait for frontend to start
     print_status "Waiting for frontend to start..."
     for i in {1..30}; do
-        if curl -f http://localhost:3000 &> /dev/null; then
+        if curl -f http://localhost:3001 &> /dev/null; then
             print_success "Frontend is ready!"
             return 0
         fi
@@ -204,9 +204,9 @@ stop_services() {
         rm -f logs/frontend.pid
     fi
     
-    # Kill any remaining processes on ports 8080 and 3000
+    # Kill any remaining processes on ports 8080 and 3001
     lsof -ti:8080 | xargs kill -9 2>/dev/null || true
-    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    lsof -ti:3001 | xargs kill -9 2>/dev/null || true
     
     print_success "All services stopped"
 }
@@ -223,8 +223,8 @@ show_status() {
     fi
     
     # Check frontend
-    if curl -f http://localhost:3000 &> /dev/null; then
-        print_success "Frontend is running on http://localhost:3000"
+    if curl -f http://localhost:3001 &> /dev/null; then
+        print_success "Frontend is running on http://localhost:3001"
     else
         print_warning "Frontend is not responding"
     fi
@@ -281,7 +281,7 @@ handle_menu() {
                 echo ""
                 print_success "🎉 System is ready!"
                 echo ""
-                echo "🌐 Frontend: http://localhost:3000"
+                echo "🌐 Frontend: http://localhost:3001"
                 echo "🔧 Backend API: http://localhost:8080/api/v1"
                 echo "❤️ Health Check: http://localhost:8080/actuator/health"
                 echo ""
@@ -295,7 +295,7 @@ handle_menu() {
                 echo ""
                 print_success "🎉 Services started!"
                 echo ""
-                echo "🌐 Frontend: http://localhost:3000"
+                echo "🌐 Frontend: http://localhost:3001"
                 echo "🔧 Backend API: http://localhost:8080/api/v1"
             fi
             ;;

@@ -23,6 +23,17 @@ A comprehensive, enterprise-grade log analysis and monitoring system built with 
 - **Java**: Version 17 or higher
 - **Node.js**: Version 18 or higher
 
+### **Port Configuration**
+
+The system uses the following ports by default:
+- **Backend**: Port 8080 (Spring Boot default)
+- **Frontend**: Port 3001 (to avoid conflicts with Grafana on port 3000)
+
+#### **Why Port 3001 for Frontend?**
+- **Port 3000** is commonly used by Grafana, Create React App default, and other development tools
+- **Port 3001** provides a conflict-free alternative while maintaining easy access
+- **Configurable**: You can easily change the port if needed (see troubleshooting section)
+
 ### **What Works Without External Dependencies**
 
 #### **✅ Available in Local Development Mode**
@@ -147,14 +158,16 @@ npm install --legacy-peer-deps
 # Start the development server
 npm start
 
-# Frontend will start on http://localhost:3000
+# Frontend will start on http://localhost:3001
 ```
 
 **Step 4: Access Your System**
-- 🌐 **Frontend Application**: http://localhost:3000
+- 🌐 **Frontend Application**: http://localhost:3001
 - 🔧 **Backend API**: http://localhost:8080/api/v1
 - ❤️ **Health Check**: http://localhost:8080/actuator/health
 - 📚 **API Documentation**: http://localhost:8080/swagger-ui.html
+
+> **📝 Note**: The frontend uses port 3001 to avoid conflicts with other services like Grafana that commonly use port 3000.
 
 **Step 5: Verify Everything is Working**
 
@@ -167,11 +180,11 @@ curl http://localhost:8080/actuator/health
 **Check Frontend:**
 ```bash
 # Should return HTML content
-curl http://localhost:3000
+curl http://localhost:3001
 ```
 
 **Test the Application:**
-1. Open http://localhost:3000 in your browser
+1. Open http://localhost:3001 in your browser
 2. You should see the Log Analysis System dashboard
 3. Navigate through different pages (Dashboard, Search, Analytics, Alerts, Settings)
 4. All pages should load without errors
@@ -201,7 +214,7 @@ Your log analysis system is now running locally with:
 ./deploy.sh deploy
 
 # Access your system
-# 🌐 Frontend: http://localhost:3000
+# 🌐 Frontend: http://localhost:3001
 # 🔧 Backend API: http://localhost:8080/api/v1
 # ❤️ Health Check: http://localhost:8080/actuator/health
 ```
@@ -487,7 +500,7 @@ npm run test:e2e
 curl http://localhost:8080/actuator/health
 
 # Test frontend
-curl http://localhost:3000
+curl http://localhost:3001
 
 # Test API endpoints
 curl http://localhost:8080/api/v1/dashboard/stats
@@ -538,14 +551,28 @@ rm -rf node_modules package-lock.json
 npm install --legacy-peer-deps
 ```
 
-**Issue: Port 3000 already in use**
+**Issue: Port 3001 already in use**
 ```bash
-# Kill process on port 3000
-lsof -i :3000  # Linux/Mac
-netstat -ano | findstr :3000  # Windows
+# Kill process on port 3001
+lsof -i :3001  # Linux/Mac
+netstat -ano | findstr :3001  # Windows
 
 # Or start on different port
-PORT=3001 npm start
+PORT=3002 npm start
+```
+
+**Issue: Port conflicts with other services (e.g., Grafana)**
+```bash
+# The frontend is configured to use port 3001 by default to avoid
+# conflicts with Grafana (port 3000) and other common services
+
+# If you need to use a different port:
+PORT=3002 npm start
+
+# Or modify the package.json scripts section:
+"scripts": {
+  "start": "PORT=3002 react-scripts start"
+}
 ```
 
 **Issue: API calls fail (CORS errors)**
@@ -558,11 +585,11 @@ PORT=3001 npm start
 #### **General Issues**
 
 **Issue: Cannot access the application**
-1. Ensure both backend (port 8080) and frontend (port 3000) are running
+1. Ensure both backend (port 8080) and frontend (port 3001) are running
 2. Check firewall settings
 3. Try accessing directly:
    - Backend: http://localhost:8080/actuator/health
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost:3001
 
 **Issue: Real-time features not working**
 1. Check WebSocket connection in browser developer tools
@@ -584,7 +611,7 @@ export JAVA_OPTS="-Xmx2g -Xms1g"
 npm run build
 
 # Serve production build locally
-npx serve -s build -l 3000
+npx serve -s build -l 3001
 ```
 
 ## 📊 **Monitoring & Observability**

@@ -49,7 +49,7 @@ echo %SUCCESS% Node.js is installed: !NODE_VERSION!
 
 REM Check if ports are available
 :check_ports
-echo %INFO% Checking if ports 8080 and 3000 are available...
+echo %INFO% Checking if ports 8080 and 3001 are available...
 netstat -an | findstr ":8080" >nul
 if %errorlevel% equ 0 (
     echo %ERROR% Port 8080 is already in use
@@ -59,16 +59,16 @@ if %errorlevel% equ 0 (
     exit /b 1
 )
 
-netstat -an | findstr ":3000" >nul
+netstat -an | findstr ":3001" >nul
 if %errorlevel% equ 0 (
-    echo %ERROR% Port 3000 is already in use
+    echo %ERROR% Port 3001 is already in use
     echo Please stop the process using this port
-    netstat -an | findstr ":3000"
+    netstat -an | findstr ":3001"
     pause
     exit /b 1
 )
 
-echo %SUCCESS% Ports 8080 and 3000 are available
+echo %SUCCESS% Ports 8080 and 3001 are available
 
 REM Create logs directory
 if not exist logs mkdir logs
@@ -134,7 +134,7 @@ REM Start frontend
 :start_frontend
 echo %INFO% Starting frontend server...
 cd frontend
-start "Frontend Server" cmd /c "npm start > ..\logs\frontend.log 2>&1"
+start "Frontend Server" cmd /c "npm run start:win > ..\logs\frontend.log 2>&1"
 cd ..
 
 echo %SUCCESS% Frontend started
@@ -145,7 +145,7 @@ echo %INFO% Waiting for frontend to start...
 set /a counter=0
 :wait_frontend
 timeout /t 2 /nobreak >nul
-curl -f http://localhost:3000 >nul 2>&1
+curl -f http://localhost:3001 >nul 2>&1
 if %errorlevel% equ 0 (
     echo %SUCCESS% Frontend is ready!
     goto show_success
@@ -163,7 +163,7 @@ exit /b 1
 echo.
 echo %SUCCESS% 🎉 System is ready!
 echo.
-echo 🌐 Frontend: http://localhost:3000
+echo 🌐 Frontend: http://localhost:3001
 echo 🔧 Backend API: http://localhost:8080/api/v1
 echo ❤️ Health Check: http://localhost:8080/actuator/health
 echo 📚 API Documentation: http://localhost:8080/swagger-ui.html
@@ -172,7 +172,7 @@ echo Press any key to open the application in your browser...
 pause >nul
 
 REM Open browser
-start http://localhost:3000
+start http://localhost:3001
 
 echo.
 echo The system is now running!
