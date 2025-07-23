@@ -5,13 +5,50 @@ A comprehensive, enterprise-grade log analysis and monitoring system built with 
 ## ✨ **Key Features**
 
 - 🔍 **Advanced Search**: Splunk-like search syntax with powerful filtering
-- 📊 **Real-time Dashboard**: Live metrics, charts, and system health monitoring  
+- 📊 **Real-time Dashboard**: Live metrics, charts, and system health monitoring
 - 🚨 **Intelligent Alerting**: Configurable alerts with multiple severity levels
 - 📈 **Analytics & Reporting**: Trend analysis, performance metrics, and custom reports
 - 🎨 **Modern UI**: Responsive React interface with dark mode support
 - ⚡ **High Performance**: Handles 10,000+ logs/second with sub-second search
 - 🔐 **Enterprise Security**: JWT authentication, RBAC, and audit trails
 - 🐳 **Container Ready**: Full Docker support with orchestration
+- 💻 **Local Development**: Works without Docker using embedded database
+
+## 💻 **System Requirements**
+
+### **Minimum Requirements**
+- **OS**: Windows 10+, macOS 10.15+, or Linux (Ubuntu 18.04+)
+- **RAM**: 4GB minimum, 8GB recommended
+- **Storage**: 2GB free space
+- **Java**: Version 17 or higher
+- **Node.js**: Version 18 or higher
+
+### **What Works Without External Dependencies**
+
+#### **✅ Available in Local Development Mode**
+- **Complete Frontend UI**: All pages, components, and styling
+- **Backend API**: All REST endpoints and business logic
+- **Database**: Embedded H2 database for development
+- **Authentication**: JWT-based authentication system
+- **Search Interface**: Full search UI with filtering and pagination
+- **Dashboard**: Real-time metrics and charts (with mock data)
+- **Analytics**: Trend analysis and reporting interface
+- **Alerts**: Alert management interface
+- **Settings**: User preferences and configuration
+
+#### **⚠️ Limited Without External Services**
+- **Real-time Log Processing**: Requires Kafka for production log streaming
+- **Advanced Search**: Full-text search requires Elasticsearch for production
+- **Time-series Metrics**: Requires InfluxDB for production metrics storage
+- **Caching**: Uses in-memory caching instead of Redis
+- **WebSocket**: Real-time updates work but with limited scalability
+
+#### **🔧 Production Features (Require Docker/External Services)**
+- **Elasticsearch**: Advanced log indexing and search
+- **Kafka**: High-throughput log streaming
+- **Redis**: Distributed caching and session management
+- **InfluxDB**: Time-series metrics storage
+- **PostgreSQL**: Production database
 
 ## 🏗️ **System Architecture**
 
@@ -32,12 +69,134 @@ A comprehensive, enterprise-grade log analysis and monitoring system built with 
 
 ## 🚀 **Quick Start**
 
-### **Option 1: One-Click Docker Deployment (Recommended)**
+### **Option 1: Local Development (No Docker Required)**
+
+#### **Prerequisites**
+- **Java 17+** (Download from [Oracle](https://www.oracle.com/java/technologies/downloads/) or [OpenJDK](https://openjdk.org/))
+- **Node.js 18+** (Download from [nodejs.org](https://nodejs.org/))
+- **Git** (Download from [git-scm.com](https://git-scm.com/))
+
+#### **🚀 Quick Start with Script (Recommended)**
+
+**For Linux/Mac:**
 ```bash
-# Clone and deploy
+# Clone the repository
 git clone https://github.com/avis-enna/log-analysis-system.git
 cd log-analysis-system
 
+# Run the interactive setup script
+./start-local.sh
+
+# Or use command line mode
+./start-local.sh start    # Start everything
+./start-local.sh stop     # Stop services
+./start-local.sh status   # Check status
+```
+
+**For Windows:**
+```cmd
+# Clone the repository
+git clone https://github.com/avis-enna/log-analysis-system.git
+cd log-analysis-system
+
+# Run the Windows setup script
+start-local.bat
+
+# The script will automatically:
+# 1. Check prerequisites (Java 17+, Node.js 18+)
+# 2. Install dependencies
+# 3. Start both backend and frontend
+# 4. Open the application in your browser
+```
+
+#### **📋 Manual Setup (Step by Step)**
+
+**Step 1: Clone the Repository**
+```bash
+git clone https://github.com/avis-enna/log-analysis-system.git
+cd log-analysis-system
+```
+
+**Step 2: Start the Backend**
+```bash
+# Navigate to backend directory
+cd backend
+
+# Make the Maven wrapper executable (Linux/Mac)
+chmod +x mvnw
+
+# Install dependencies and start the backend
+./mvnw clean install
+./mvnw spring-boot:run
+
+# For Windows, use:
+# mvnw.cmd clean install
+# mvnw.cmd spring-boot:run
+
+# Backend will start on http://localhost:8080
+```
+
+**Step 3: Start the Frontend (New Terminal)**
+```bash
+# Navigate to frontend directory (from project root)
+cd frontend
+
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Start the development server
+npm start
+
+# Frontend will start on http://localhost:3000
+```
+
+**Step 4: Access Your System**
+- 🌐 **Frontend Application**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:8080/api/v1
+- ❤️ **Health Check**: http://localhost:8080/actuator/health
+- 📚 **API Documentation**: http://localhost:8080/swagger-ui.html
+
+**Step 5: Verify Everything is Working**
+
+**Check Backend Health:**
+```bash
+# Should return {"status":"UP"}
+curl http://localhost:8080/actuator/health
+```
+
+**Check Frontend:**
+```bash
+# Should return HTML content
+curl http://localhost:3000
+```
+
+**Test the Application:**
+1. Open http://localhost:3000 in your browser
+2. You should see the Log Analysis System dashboard
+3. Navigate through different pages (Dashboard, Search, Analytics, Alerts, Settings)
+4. All pages should load without errors
+
+#### **🎉 Success! You're Ready to Go**
+
+Your log analysis system is now running locally with:
+- ✅ **Modern React Frontend** with all pages and components
+- ✅ **Spring Boot Backend** with all APIs
+- ✅ **Embedded Database** for development
+- ✅ **Real-time Dashboard** with mock data
+- ✅ **Search Interface** ready for log analysis
+- ✅ **Alert Management** system
+- ✅ **User Settings** and preferences
+
+**Next Steps:**
+- Explore the dashboard and different pages
+- Try the search functionality
+- Configure alerts and settings
+- For production deployment, consider using Docker with external services
+
+### **Option 2: Docker Deployment (If You Have Docker)**
+
+#### **One-Click Deployment**
+```bash
 # Deploy everything with one command
 ./deploy.sh deploy
 
@@ -47,20 +206,20 @@ cd log-analysis-system
 # ❤️ Health Check: http://localhost:8080/actuator/health
 ```
 
-### **Option 2: Interactive Deployment**
+#### **Interactive Deployment**
 ```bash
 # Run interactive deployment script
 ./deploy.sh
 
 # Follow the menu options:
 # 1) Deploy System (Docker)
-# 2) Stop Services  
+# 2) Stop Services
 # 3) Show Service Status
 # 4) Show Logs
 # 5) Cleanup Everything
 ```
 
-### **Option 3: Manual Docker Compose**
+#### **Manual Docker Compose**
 ```bash
 # Start all services
 docker-compose -f docker-compose.simple.yml up -d
@@ -188,39 +347,244 @@ kubectl scale deployment log-analyzer-backend --replicas=3
 - **🏥 Health Checks**: Available at `/actuator/health`
 - **📊 Metrics**: Available at `/actuator/metrics`
 
-## 🛠️ **Development**
+## 🛠️ **Local Development Setup**
 
-### **Prerequisites**
-- Java 17+ (backend development)
-- Node.js 18+ (frontend development)
-- Docker & Docker Compose (containerized deployment)
+### **Prerequisites Installation**
+
+#### **Java 17+ Installation**
+```bash
+# Check if Java is installed
+java -version
+
+# If not installed, download from:
+# - Oracle JDK: https://www.oracle.com/java/technologies/downloads/
+# - OpenJDK: https://openjdk.org/
+# - Or use package managers:
+
+# Ubuntu/Debian
+sudo apt update
+sudo apt install openjdk-17-jdk
+
+# macOS (with Homebrew)
+brew install openjdk@17
+
+# Windows (with Chocolatey)
+choco install openjdk17
+```
+
+#### **Node.js 18+ Installation**
+```bash
+# Check if Node.js is installed
+node --version
+npm --version
+
+# If not installed, download from: https://nodejs.org/
+# Or use package managers:
+
+# Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# macOS (with Homebrew)
+brew install node@18
+
+# Windows (with Chocolatey)
+choco install nodejs
+```
 
 ### **Backend Development**
+
+#### **Setup and Run**
 ```bash
 cd backend
-./mvnw clean compile test
+
+# Make Maven wrapper executable (Linux/Mac only)
+chmod +x mvnw
+
+# Clean and install dependencies
+./mvnw clean install
+
+# Run tests
+./mvnw test
+
+# Start the backend server
 ./mvnw spring-boot:run
+
+# For Windows users:
+# mvnw.cmd clean install
+# mvnw.cmd test
+# mvnw.cmd spring-boot:run
 ```
 
+#### **Backend Configuration**
+The backend uses an embedded H2 database by default for development. No additional database setup is required.
+
+**Configuration file**: `backend/src/main/resources/application.yml`
+
 ### **Frontend Development**
+
+#### **Setup and Run**
 ```bash
 cd frontend
+
+# Install dependencies (use legacy-peer-deps to resolve conflicts)
 npm install --legacy-peer-deps
+
+# Run tests
 npm test
+
+# Start development server
 npm start
+
+# Build for production
+npm run build
 ```
+
+#### **Frontend Configuration**
+The frontend is configured to proxy API requests to the backend automatically.
+
+**Configuration**: The `package.json` includes a proxy setting to `http://localhost:8080`
 
 ## 🧪 **Testing**
 
+### **Backend Testing**
 ```bash
-# Backend tests
-cd backend && ./mvnw test
+cd backend
 
-# Frontend tests
-cd frontend && npm test
+# Run all tests
+./mvnw test
 
-# Integration tests
-./deploy.sh deploy && curl http://localhost:8080/actuator/health
+# Run specific test class
+./mvnw test -Dtest=SearchControllerTest
+
+# Run tests with coverage
+./mvnw test jacoco:report
+
+# For Windows:
+# mvnw.cmd test
+```
+
+### **Frontend Testing**
+```bash
+cd frontend
+
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Run end-to-end tests (if available)
+npm run test:e2e
+```
+
+### **Integration Testing**
+```bash
+# Test backend health
+curl http://localhost:8080/actuator/health
+
+# Test frontend
+curl http://localhost:3000
+
+# Test API endpoints
+curl http://localhost:8080/api/v1/dashboard/stats
+```
+
+## 🔧 **Troubleshooting**
+
+### **Common Issues and Solutions**
+
+#### **Backend Issues**
+
+**Issue: Java version mismatch**
+```bash
+# Check Java version
+java -version
+
+# Should show Java 17 or higher
+# If not, install Java 17+ and set JAVA_HOME
+export JAVA_HOME=/path/to/java17
+```
+
+**Issue: Port 8080 already in use**
+```bash
+# Find process using port 8080
+lsof -i :8080  # Linux/Mac
+netstat -ano | findstr :8080  # Windows
+
+# Kill the process or change port in application.yml
+server:
+  port: 8081
+```
+
+**Issue: Maven build fails**
+```bash
+# Clear Maven cache and rebuild
+./mvnw clean
+rm -rf ~/.m2/repository
+./mvnw clean install
+```
+
+#### **Frontend Issues**
+
+**Issue: npm install fails**
+```bash
+# Clear npm cache and reinstall
+npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install --legacy-peer-deps
+```
+
+**Issue: Port 3000 already in use**
+```bash
+# Kill process on port 3000
+lsof -i :3000  # Linux/Mac
+netstat -ano | findstr :3000  # Windows
+
+# Or start on different port
+PORT=3001 npm start
+```
+
+**Issue: API calls fail (CORS errors)**
+```bash
+# Ensure backend is running on port 8080
+# Check proxy setting in package.json:
+"proxy": "http://localhost:8080"
+```
+
+#### **General Issues**
+
+**Issue: Cannot access the application**
+1. Ensure both backend (port 8080) and frontend (port 3000) are running
+2. Check firewall settings
+3. Try accessing directly:
+   - Backend: http://localhost:8080/actuator/health
+   - Frontend: http://localhost:3000
+
+**Issue: Real-time features not working**
+1. Check WebSocket connection in browser developer tools
+2. Ensure backend WebSocket endpoint is accessible
+3. Check for proxy/firewall blocking WebSocket connections
+
+### **Performance Optimization**
+
+#### **Backend Performance**
+```bash
+# Increase JVM memory
+export JAVA_OPTS="-Xmx2g -Xms1g"
+./mvnw spring-boot:run
+```
+
+#### **Frontend Performance**
+```bash
+# Build optimized production version
+npm run build
+
+# Serve production build locally
+npx serve -s build -l 3000
 ```
 
 ## 📊 **Monitoring & Observability**
