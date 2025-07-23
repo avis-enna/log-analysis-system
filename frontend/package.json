@@ -4,6 +4,7 @@
   "description": "Enterprise Log Analysis System - Frontend",
   "private": true,
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@reduxjs/toolkit": "^2.0.1",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
