@@ -168,12 +168,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,loggers
+        include: health,info,metrics,prometheus,loggers,caches,env,mappings,beans
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
       show-components: always
+      probes:
+        enabled: true
     metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    loggers:
+      enabled: true
+    caches:
       enabled: true
   metrics:
     export:
@@ -182,6 +191,8 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        log.search.duration: true
+        log.ingestion.duration: true
       percentiles:
         http.server.requests: 0.5, 0.95, 0.99
       sla:

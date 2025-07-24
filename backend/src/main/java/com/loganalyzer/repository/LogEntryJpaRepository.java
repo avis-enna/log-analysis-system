@@ -90,18 +90,21 @@ public interface LogEntryJpaRepository extends JpaRepository<LogEntry, String> {
     
     long countByLevelAndTimestampBetween(String level, LocalDateTime start, LocalDateTime end);
     
-    // Distinct queries
-    @Query("SELECT DISTINCT l.source FROM LogEntry l")
+    // Distinct queries with limits for performance
+    @Query("SELECT DISTINCT l.source FROM LogEntry l ORDER BY l.source LIMIT 100")
     List<String> findDistinctSources();
-    
-    @Query("SELECT DISTINCT l.host FROM LogEntry l")
+
+    @Query("SELECT DISTINCT l.host FROM LogEntry l ORDER BY l.host LIMIT 100")
     List<String> findDistinctHosts();
-    
-    @Query("SELECT DISTINCT l.application FROM LogEntry l")
+
+    @Query("SELECT DISTINCT l.application FROM LogEntry l ORDER BY l.application LIMIT 100")
     List<String> findDistinctApplications();
-    
-    @Query("SELECT DISTINCT l.environment FROM LogEntry l")
+
+    @Query("SELECT DISTINCT l.environment FROM LogEntry l ORDER BY l.environment LIMIT 20")
     List<String> findDistinctEnvironments();
+
+    @Query("SELECT DISTINCT l.level FROM LogEntry l ORDER BY l.level")
+    List<String> findDistinctLevels();
     
     // Recent logs
     @Query("SELECT l FROM LogEntry l WHERE l.timestamp >= :oneHourAgo")
@@ -146,4 +149,39 @@ public interface LogEntryJpaRepository extends JpaRepository<LogEntry, String> {
     
     @Query("SELECT l FROM LogEntry l WHERE l.id IN (SELECT DISTINCT le.id FROM LogEntry le JOIN le.tags t WHERE KEY(t) = :key AND VALUE(t) = :value)")
     Page<LogEntry> findByTag(@Param("key") String key, @Param("value") String value, Pageable pageable);
+
+    // Additional optimized queries for better performance
+    @Query("SELECT l FROM LogEntry l WHERE " +
+           "(:query IS NULL OR LOWER(l.message) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           "(:level IS NULL OR l.level = :level) AND " +
+           "(:source IS NULL OR l.source = :source) AND " +
+           "(:startTime IS NULL OR l.timestamp >= :startTime) AND " +
+           "(:endTime IS NULL OR l.timestamp <= :endTime) " +
+           "ORDER BY l.timestamp DESC")
+    Page<LogEntry> findByComplexQuery(
+        @Param("query") String query,
+        @Param("level") String level,
+        @Param("source") String source,
+        @Param("startTime") LocalDateTime startTime,
+        @Param("endTime") LocalDateTime endTime,
+        Pageable pageable
+    );
+
+    // Enhanced multi-field search with better performance (replaces the simpler version above)
+    @Query("SELECT l FROM LogEntry l WHERE " +
+           "LOWER(l.message) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(l.source) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(l.application) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(l.host) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(l.logger) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(l.thread) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "ORDER BY l.timestamp DESC")
+    Page<LogEntry> findByEnhancedMultiFieldSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    // Statistics queries for dashboard performance
+    @Query("SELECT l.level, COUNT(l) FROM LogEntry l WHERE l.timestamp >= :since GROUP BY l.level")
+    List<Object[]> getLogCountsByLevel(@Param("since") LocalDateTime since);
+
+    @Query("SELECT l.source, COUNT(l) FROM LogEntry l WHERE l.timestamp >= :since GROUP BY l.source ORDER BY COUNT(l) DESC")
+    List<Object[]> getLogCountsBySource(@Param("since") LocalDateTime since);
 }
