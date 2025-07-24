@@ -40,16 +40,34 @@ print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 print_header() { echo -e "${PURPLE}=== $1 ===${NC}"; }
 
-# Check if podman is installed
+# Check if podman or docker is installed
 check_podman() {
-    if ! command -v podman &> /dev/null; then
-        print_error "Podman not installed. Install with:"
+    if command -v podman &> /dev/null; then
+        CONTAINER_CMD="podman"
+        CONTAINER_TYPE="podman"
+        print_success "Podman found: $(podman --version)"
+    elif command -v docker &> /dev/null; then
+        CONTAINER_CMD="docker"
+        CONTAINER_TYPE="docker"
+        print_success "Docker found: $(docker --version)"
+        print_warning "Using Docker instead of Podman"
+    else
+        print_error "Neither Podman nor Docker is installed. Install with:"
         echo "  Ubuntu/Debian: sudo apt-get install podman"
         echo "  RHEL/CentOS: sudo dnf install podman"
         echo "  macOS: brew install podman"
         exit 1
     fi
-    print_success "Podman found: $(podman --version)"
+}
+
+# Container-compatible ps command
+container_ps() {
+    if [[ "$CONTAINER_TYPE" == "podman" ]]; then
+        $CONTAINER_CMD ps "$@"
+    else
+        # Docker doesn't support the same format options
+        $CONTAINER_CMD ps "$@" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    fi
 }
 
 # Cleanup existing containers
@@ -58,16 +76,16 @@ cleanup() {
 
     containers=("${PROJECT_NAME}-backend" "${PROJECT_NAME}-frontend" "${PROJECT_NAME}-postgres" "${PROJECT_NAME}-redis")
     for container in "${containers[@]}"; do
-        if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
+        if $CONTAINER_CMD ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
             print_status "Removing container: $container"
-            podman stop "$container" 2>/dev/null || true
-            podman rm "$container" 2>/dev/null || true
+            $CONTAINER_CMD stop "$container" 2>/dev/null || true
+            $CONTAINER_CMD rm "$container" 2>/dev/null || true
         fi
     done
 
-    if podman network ls --format "{{.Name}}" | grep -q "^${NETWORK_NAME}$"; then
+    if $CONTAINER_CMD network ls --format "{{.Name}}" | grep -q "^${NETWORK_NAME}$"; then
         print_status "Removing network: $NETWORK_NAME"
-        podman network rm "$NETWORK_NAME" 2>/dev/null || true
+        $CONTAINER_CMD network rm "$NETWORK_NAME" 2>/dev/null || true
     fi
 
     print_success "Cleanup completed"
@@ -76,8 +94,8 @@ cleanup() {
 # Create network
 create_network() {
     print_header "CREATING NETWORK"
-    if ! podman network ls --format "{{.Name}}" | grep -q "^${NETWORK_NAME}$"; then
-        podman network create "$NETWORK_NAME"
+    if ! $CONTAINER_CMD network ls --format "{{.Name}}" | grep -q "^${NETWORK_NAME}$"; then
+        $CONTAINER_CMD network create "$NETWORK_NAME"
         print_success "Network created: $NETWORK_NAME"
     else
         print_status "Network exists: $NETWORK_NAME"
@@ -113,7 +131,7 @@ ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 EOF
 
     print_status "Building backend image..."
-    podman build -f Dockerfile.podman -t "$BACKEND_IMAGE" .
+    $CONTAINER_CMD build -f Dockerfile.podman -t "$BACKEND_IMAGE" .
     cd ..
     print_success "Backend image built"
 }
@@ -142,7 +160,7 @@ CMD ["nginx", "-g", "daemon off;"]
 EOF
 
     print_status "Building frontend image..."
-    podman build -f Dockerfile.podman -t "$FRONTEND_IMAGE" .
+    $CONTAINER_CMD build -f Dockerfile.podman -t "$FRONTEND_IMAGE" .
     cd ..
     print_success "Frontend image built"
 }
@@ -152,7 +170,7 @@ start_database() {
 
     # PostgreSQL
     print_status "Starting PostgreSQL..."
-    podman run -d \
+    $CONTAINER_CMD run -d \
         --name "${PROJECT_NAME}-postgres" \
         --network "$NETWORK_NAME" \
         -p "${POSTGRES_PORT}:5432" \
@@ -164,7 +182,7 @@ start_database() {
 
     # Redis
     print_status "Starting Redis..."
-    podman run -d \
+    $CONTAINER_CMD run -d \
         --name "${PROJECT_NAME}-redis" \
         --network "$NETWORK_NAME" \
         -p "${REDIS_PORT}:6379" \
@@ -181,7 +199,7 @@ wait_for_services() {
     # Wait for PostgreSQL
     print_status "Waiting for PostgreSQL..."
     for i in {1..30}; do
-        if podman exec "${PROJECT_NAME}-postgres" pg_isready -U "$DB_USER" -d "$DB_NAME" &>/dev/null; then
+        if $CONTAINER_CMD exec "${PROJECT_NAME}-postgres" pg_isready -U "$DB_USER" -d "$DB_NAME" &>/dev/null; then
             print_success "PostgreSQL ready"
             break
         fi
@@ -192,7 +210,7 @@ wait_for_services() {
     # Wait for Redis
     print_status "Waiting for Redis..."
     for i in {1..30}; do
-        if podman exec "${PROJECT_NAME}-redis" redis-cli ping &>/dev/null; then
+        if $CONTAINER_CMD exec "${PROJECT_NAME}-redis" redis-cli ping &>/dev/null; then
             print_success "Redis ready"
             break
         fi
@@ -205,7 +223,7 @@ wait_for_services() {
 start_backend() {
     print_header "STARTING BACKEND"
 
-    podman run -d \
+    $CONTAINER_CMD run -d \
         --name "${PROJECT_NAME}-backend" \
         --network "$NETWORK_NAME" \
         -p "${BACKEND_PORT}:8080" \
@@ -225,7 +243,7 @@ start_backend() {
 start_frontend() {
     print_header "STARTING FRONTEND"
 
-    podman run -d \
+    $CONTAINER_CMD run -d \
         --name "${PROJECT_NAME}-frontend" \
         --network "$NETWORK_NAME" \
         -p "${FRONTEND_PORT}:3000" \
@@ -290,9 +308,9 @@ stop_all() {
     print_header "STOPPING ALL SERVICES"
     containers=("${PROJECT_NAME}-backend" "${PROJECT_NAME}-frontend" "${PROJECT_NAME}-postgres" "${PROJECT_NAME}-redis")
     for container in "${containers[@]}"; do
-        if podman ps --format "{{.Names}}" | grep -q "^${container}$"; then
+        if $CONTAINER_CMD ps --format "{{.Names}}" | grep -q "^${container}$"; then
             print_status "Stopping $container"
-            podman stop "$container"
+            $CONTAINER_CMD stop "$container"
         fi
     done
     print_success "All services stopped"
@@ -341,11 +359,16 @@ case "${1:-deploy}" in
         cleanup
         ;;
     "logs")
-        podman logs -f "${PROJECT_NAME}-backend"
+        $CONTAINER_CMD logs -f "${PROJECT_NAME}-backend"
         ;;
     "status")
         print_header "CONTAINER STATUS"
-        podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$PROJECT_NAME"
+        if [[ "$CONTAINER_TYPE" == "podman" ]]; then
+            $CONTAINER_CMD ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "$PROJECT_NAME"
+        else
+            echo "NAME                    STATUS          PORTS"
+            $CONTAINER_CMD ps | grep "$PROJECT_NAME" | awk '{print $NF "\t\t" $1 "\t\t" $(NF-1)}'
+        fi
         ;;
     "help"|"-h"|"--help")
         echo "Usage: $0 [command]"
@@ -365,189 +388,3 @@ case "${1:-deploy}" in
         exit 1
         ;;
 esac
-
-    print_status "Building backend image: $BACKEND_IMAGE"
-    cd backend
-
-    # Create optimized Dockerfile for local development
-    cat > Dockerfile.local << 'EOF'
-# Optimized Dockerfile for local development
-FROM maven:3.9-openjdk-17-slim AS builder
-
-# Set working directory
-WORKDIR /app
-
-# Copy Maven configuration
-COPY pom.xml .
-
-# Download dependencies (cached layer)
-RUN mvn dependency:go-offline -B
-
-# Copy source code
-COPY src ./src
-
-# Build application (skip tests for faster builds)
-RUN mvn clean package -DskipTests -B
-
-# Runtime stage
-FROM openjdk:17-jre-slim
-
-# Install utilities
-RUN apt-get update && \
-    apt-get install -y curl netcat-traditional && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create app user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-WORKDIR /app
-
-# Copy JAR file
-COPY --from=builder /app/target/*.jar app.jar
-
-# Create directories
-RUN mkdir -p logs data && chown -R appuser:appuser /app
-
-# Switch to app user
-USER appuser
-
-# Expose port
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
-
-# JVM options optimized for containers
-ENV JAVA_OPTS="-Xms256m -Xmx1g -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
-
-# Run application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-EOF
-
-    podman build -f Dockerfile.local -t "$BACKEND_IMAGE" .
-    cd ..
-
-    print_success "Backend image built successfully"
-}
-
-# Function to build frontend image
-build_frontend() {
-    print_header "BUILDING FRONTEND IMAGE"
-
-    print_status "Building frontend image: $FRONTEND_IMAGE"
-    cd frontend
-
-    # Create optimized Dockerfile for local development
-    cat > Dockerfile.local << 'EOF'
-# Optimized Dockerfile for local development
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production --silent
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# Runtime stage with nginx
-FROM nginx:alpine
-
-# Install curl for health checks
-RUN apk add --no-cache curl
-
-# Copy built app
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Create nginx user directories
-RUN mkdir -p /var/cache/nginx/client_temp && \
-    chown -R nginx:nginx /var/cache/nginx
-
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:3000 || exit 1
-
-CMD ["nginx", "-g", "daemon off;"]
-EOF
-
-    podman build -f Dockerfile.local -t "$FRONTEND_IMAGE" .
-    cd ..
-
-    print_success "Frontend image built successfully"
-}
-
-# Function to start database
-start_database() {
-    print_header "STARTING DATABASE SERVICES"
-
-    # Start PostgreSQL
-    print_status "Starting PostgreSQL container"
-    podman run -d \
-        --name "${PROJECT_NAME}-postgres" \
-        --network "$NETWORK_NAME" \
-        -p "${POSTGRES_PORT}:5432" \
-        -e POSTGRES_DB="$DB_NAME" \
-        -e POSTGRES_USER="$DB_USER" \
-        -e POSTGRES_PASSWORD="$DB_PASSWORD" \
-        -e POSTGRES_INITDB_ARGS="--encoding=UTF-8 --lc-collate=C --lc-ctype=C" \
-        -v "${PROJECT_NAME}-postgres-data:/var/lib/postgresql/data" \
-        "$POSTGRES_IMAGE"
-
-    # Start Redis
-    print_status "Starting Redis container"
-    podman run -d \
-        --name "${PROJECT_NAME}-redis" \
-        --network "$NETWORK_NAME" \
-        -p "${REDIS_PORT}:6379" \
-        -v "${PROJECT_NAME}-redis-data:/data" \
-        "$REDIS_IMAGE" \
-        redis-server --appendonly yes
-
-    print_success "Database services started"
-}
-
-# Function to wait for services
-wait_for_services() {
-    print_header "WAITING FOR SERVICES TO BE READY"
-
-    # Wait for PostgreSQL
-    print_status "Waiting for PostgreSQL to be ready..."
-    for i in {1..30}; do
-        if podman exec "${PROJECT_NAME}-postgres" pg_isready -U "$DB_USER" -d "$DB_NAME" &>/dev/null; then
-            print_success "PostgreSQL is ready"
-            break
-        fi
-        if [ $i -eq 30 ]; then
-            print_error "PostgreSQL failed to start within 30 seconds"
-            exit 1
-        fi
-        sleep 1
-    done
-
-    # Wait for Redis
-    print_status "Waiting for Redis to be ready..."
-    for i in {1..30}; do
-        if podman exec "${PROJECT_NAME}-redis" redis-cli ping &>/dev/null; then
-            print_success "Redis is ready"
-            break
-        fi
-        if [ $i -eq 30 ]; then
-            print_error "Redis failed to start within 30 seconds"
-            exit 1
-        fi
-        sleep 1
-    done
-}
-EOF
