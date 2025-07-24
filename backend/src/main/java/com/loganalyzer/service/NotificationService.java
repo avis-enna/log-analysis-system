@@ -13,6 +13,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -46,7 +47,7 @@ public class NotificationService {
     @Value("${alerting.notification.webhook.retry-attempts:3}")
     private int retryAttempts;
     
-    public NotificationService(JavaMailSender mailSender, RestTemplate restTemplate) {
+    public NotificationService(@Autowired(required = false) JavaMailSender mailSender, RestTemplate restTemplate) {
         this.mailSender = mailSender;
         this.restTemplate = restTemplate;
     }
@@ -86,16 +87,21 @@ public class NotificationService {
      * Sends email notification for alert.
      */
     private void sendEmailNotification(Alert alert) {
+        if (mailSender == null) {
+            logger.debug("Email notification skipped - JavaMailSender not available for alert: {}", alert.getId());
+            return;
+        }
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(getEmailRecipients(alert));
             message.setSubject(formatEmailSubject(alert));
             message.setText(formatEmailBody(alert));
-            
+
             mailSender.send(message);
             logger.debug("Email notification sent for alert: {}", alert.getId());
-            
+
         } catch (Exception e) {
             logger.error("Failed to send email notification for alert: {}", alert.getId(), e);
         }

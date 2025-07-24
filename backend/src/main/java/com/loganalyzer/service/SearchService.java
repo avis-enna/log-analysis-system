@@ -3,11 +3,12 @@ package com.loganalyzer.service;
 import com.loganalyzer.dto.SearchQuery;
 import com.loganalyzer.dto.SearchResult;
 import com.loganalyzer.model.LogEntry;
-import com.loganalyzer.repository.LogEntryRepository;
+import com.loganalyzer.repository.LogEntryJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -27,7 +28,7 @@ public class SearchService {
     private static final Logger logger = LoggerFactory.getLogger(SearchService.class);
     
     @Autowired
-    private LogEntryRepository logEntryRepository;
+    private LogEntryJpaRepository logEntryRepository;
     
     /**
      * Performs a comprehensive search with advanced query parsing.

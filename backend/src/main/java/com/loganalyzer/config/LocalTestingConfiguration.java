@@ -1,7 +1,7 @@
 package com.loganalyzer.config;
 
 import com.loganalyzer.model.LogEntry;
-import com.loganalyzer.repository.LogEntryRepository;
+import com.loganalyzer.repository.LogEntryJpaRepository;
 import com.loganalyzer.service.SearchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class LocalTestingConfiguration {
      */
     @Bean
     @Profile("local")
-    public CommandLineRunner generateSampleData(@Autowired LogEntryRepository logEntryRepository) {
+    public CommandLineRunner generateSampleData(@Autowired LogEntryJpaRepository logEntryRepository) {
         return args -> {
             if (testDataEnabled && generateOnStartup) {
                 logger.info("Generating {} sample log entries for local testing...", logCount);

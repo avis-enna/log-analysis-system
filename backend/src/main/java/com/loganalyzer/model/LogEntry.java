@@ -2,98 +2,138 @@ package com.loganalyzer.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
  * Represents a log entry in the system.
  * This is the core entity that stores individual log messages with metadata.
- * 
+ *
  * Stored in Elasticsearch for fast full-text search and aggregations.
+ * Also supports JPA for local development with H2 database.
  * Indexed with optimized mappings for search performance.
  */
+@Entity
+@Table(name = "log_entries", indexes = {
+    @Index(name = "idx_log_timestamp", columnList = "timestamp"),
+    @Index(name = "idx_log_level", columnList = "level"),
+    @Index(name = "idx_log_source", columnList = "source"),
+    @Index(name = "idx_log_application", columnList = "application"),
+    @Index(name = "idx_log_host", columnList = "host")
+})
 @Document(indexName = "logs")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LogEntry {
-    
-    @Id
+
+    @jakarta.persistence.Id
+    @Column(name = "id", length = 255)
     private String id;
     
+    @Column(name = "timestamp", nullable = false)
     @Field(type = FieldType.Date, format = {}, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime timestamp;
-    
+
+    @Column(name = "level", length = 50)
     @Field(type = FieldType.Keyword)
     private String level;
-    
+
+    @Column(name = "message", columnDefinition = "TEXT")
     @Field(type = FieldType.Text, analyzer = "standard")
     private String message;
-    
+
+    @Column(name = "source", length = 255)
     @Field(type = FieldType.Keyword)
     private String source;
-    
+
+    @Column(name = "host", length = 255)
     @Field(type = FieldType.Keyword)
     private String host;
-    
+
+    @Column(name = "application", length = 255)
     @Field(type = FieldType.Keyword)
     private String application;
-    
+
+    @Column(name = "environment", length = 100)
     @Field(type = FieldType.Keyword)
     private String environment;
-    
+
+    @Column(name = "logger", length = 500)
     @Field(type = FieldType.Keyword)
     private String logger;
     
+    @Column(name = "thread", length = 255)
     @Field(type = FieldType.Keyword)
     private String thread;
-    
+
+    @Column(name = "stack_trace", columnDefinition = "TEXT")
     @Field(type = FieldType.Text)
     private String stackTrace;
-    
+
+    @ElementCollection
+    @CollectionTable(name = "log_entry_metadata", joinColumns = @JoinColumn(name = "log_entry_id"))
+    @MapKeyColumn(name = "metadata_key")
+    @Column(name = "metadata_value", length = 1000)
     @Field(type = FieldType.Object)
-    private Map<String, Object> metadata;
-    
+    private Map<String, String> metadata;
+
+    @ElementCollection
+    @CollectionTable(name = "log_entry_tags", joinColumns = @JoinColumn(name = "log_entry_id"))
+    @MapKeyColumn(name = "tag_key")
+    @Column(name = "tag_value")
     @Field(type = FieldType.Object)
     private Map<String, String> tags;
-    
+
+    @Column(name = "processing_time")
     @Field(type = FieldType.Long)
     private Long processingTime;
-    
+
+    @Column(name = "parsed")
     @Field(type = FieldType.Boolean)
     private Boolean parsed;
-    
+
+    @Column(name = "original_format", length = 100)
     @Field(type = FieldType.Keyword)
     private String originalFormat;
-    
+
+    @Column(name = "severity")
     @Field(type = FieldType.Integer)
     private Integer severity;
-    
+
+    @Column(name = "category", length = 100)
     @Field(type = FieldType.Keyword)
     private String category;
     
+    @Column(name = "user_id", length = 255)
     @Field(type = FieldType.Text)
     private String userId;
-    
+
+    @Column(name = "session_id", length = 255)
     @Field(type = FieldType.Text)
     private String sessionId;
-    
+
+    @Column(name = "request_id", length = 255)
     @Field(type = FieldType.Text)
     private String requestId;
-    
+
+    @Column(name = "http_method", length = 10)
     @Field(type = FieldType.Keyword)
     private String httpMethod;
-    
+
+    @Column(name = "http_url", length = 2000)
     @Field(type = FieldType.Text)
     private String httpUrl;
-    
+
+    @Column(name = "http_status")
     @Field(type = FieldType.Integer)
     private Integer httpStatus;
-    
+
+    @Column(name = "response_time")
     @Field(type = FieldType.Long)
     private Long responseTime;
     
@@ -145,8 +185,8 @@ public class LogEntry {
     public String getStackTrace() { return stackTrace; }
     public void setStackTrace(String stackTrace) { this.stackTrace = stackTrace; }
     
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public Map<String, String> getMetadata() { return metadata; }
+    public void setMetadata(Map<String, String> metadata) { this.metadata = metadata; }
     
     public Map<String, String> getTags() { return tags; }
     public void setTags(Map<String, String> tags) { this.tags = tags; }
