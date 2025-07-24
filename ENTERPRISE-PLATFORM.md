@@ -12,7 +12,7 @@ A **complete enterprise-grade platform** with professional DevOps capabilities t
 
 ## 📊 **Complete Solution Overview**
 
-### **🔧 Core Management Scripts (10 Scripts)**
+### **🔧 Core Management Scripts (13 Scripts)**
 
 | Script | Lines | Purpose | Key Features |
 |--------|-------|---------|--------------|
@@ -26,6 +26,9 @@ A **complete enterprise-grade platform** with professional DevOps capabilities t
 | **`env-manager.sh`** | 300+ | Multi-environment | Dev/staging/prod management |
 | **`observability.sh`** | 300+ | Advanced monitoring | Prometheus, Grafana, Jaeger |
 | **`k8s-deploy.sh`** | 300+ | Kubernetes deployment | Alternative to Podman |
+| **`demo-scenarios.sh`** | 300+ | Interactive demos | Real-world usage scenarios |
+| **`workflow-automation.sh`** | 300+ | Automated workflows | DevOps automation pipelines |
+| **`dashboard.sh`** | 300+ | Real-time monitoring | Live system dashboard |
 
 ### **📁 Additional Files**
 - **CI/CD Pipeline** (`.github/workflows/ci-cd.yml`)
@@ -34,7 +37,7 @@ A **complete enterprise-grade platform** with professional DevOps capabilities t
 - **Observability Configs** (Prometheus, Grafana dashboards)
 - **Comprehensive Documentation** (5 detailed guides)
 
-### **🎯 Total Solution: 3,500+ Lines of Professional Code**
+### **🎯 Total Solution: 4,500+ Lines of Professional Code**
 
 ---
 
