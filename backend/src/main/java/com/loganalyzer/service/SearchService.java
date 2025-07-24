@@ -3,7 +3,7 @@ package com.loganalyzer.service;
 import com.loganalyzer.dto.SearchQuery;
 import com.loganalyzer.dto.SearchResult;
 import com.loganalyzer.model.LogEntry;
-import com.loganalyzer.repository.LogEntryRepository;
+import com.loganalyzer.repository.LogEntryJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,15 +19,16 @@ import java.util.stream.Collectors;
 
 /**
  * Service for searching and analyzing log entries.
+ * Uses JPA repository for local development with H2 database.
  * Provides both simple database searches and advanced query parsing.
  */
 @Service
 public class SearchService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(SearchService.class);
-    
+
     @Autowired
-    private LogEntryRepository logEntryRepository;
+    private LogEntryJpaRepository logEntryRepository;
     
     /**
      * Performs a comprehensive search with advanced query parsing.

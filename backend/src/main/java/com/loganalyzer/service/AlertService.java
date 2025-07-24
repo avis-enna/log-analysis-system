@@ -28,7 +28,7 @@ public class AlertService {
     @Autowired
     private AlertRepository alertRepository;
     
-    @Autowired
+    @Autowired(required = false)
     private SimpMessagingTemplate messagingTemplate;
     
     @Autowired
@@ -232,8 +232,10 @@ public class AlertService {
             Alert alert = createAlert(rule, logEntry);
             Alert savedAlert = alertRepository.save(alert);
             
-            // Send real-time notification
-            messagingTemplate.convertAndSend("/topic/alerts", savedAlert);
+            // Send real-time notification (if WebSocket is available)
+            if (messagingTemplate != null) {
+                messagingTemplate.convertAndSend("/topic/alerts", savedAlert);
+            }
             
             // Send external notifications
             notificationService.sendAlertNotification(savedAlert);
@@ -357,8 +359,10 @@ public class AlertService {
             alert.acknowledge(acknowledgedBy);
             Alert savedAlert = alertRepository.save(alert);
             
-            // Send real-time update
-            messagingTemplate.convertAndSend("/topic/alerts/acknowledged", savedAlert);
+            // Send real-time update (if WebSocket is available)
+            if (messagingTemplate != null) {
+                messagingTemplate.convertAndSend("/topic/alerts/acknowledged", savedAlert);
+            }
             
             logger.info("Alert {} acknowledged by {}", alertId, acknowledgedBy);
             return savedAlert;
@@ -377,8 +381,10 @@ public class AlertService {
             alert.resolve(resolvedBy, notes);
             Alert savedAlert = alertRepository.save(alert);
             
-            // Send real-time update
-            messagingTemplate.convertAndSend("/topic/alerts/resolved", savedAlert);
+            // Send real-time update (if WebSocket is available)
+            if (messagingTemplate != null) {
+                messagingTemplate.convertAndSend("/topic/alerts/resolved", savedAlert);
+            }
             
             logger.info("Alert {} resolved by {}", alertId, resolvedBy);
             return savedAlert;

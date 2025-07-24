@@ -1,7 +1,7 @@
 package com.loganalyzer.service;
 
 import com.loganalyzer.model.LogEntry;
-import com.loganalyzer.repository.LogEntryRepository;
+import com.loganalyzer.repository.LogEntryJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +31,9 @@ public class LogIngestionService {
     private static final Logger logger = LoggerFactory.getLogger(LogIngestionService.class);
     
     @Autowired
-    private LogEntryRepository logEntryRepository;
+    private LogEntryJpaRepository logEntryRepository;
     
-    @Autowired
+    @Autowired(required = false)
     private KafkaTemplate<String, Object> kafkaTemplate;
     
     @Autowired
@@ -85,8 +85,10 @@ public class LogIngestionService {
             // Save to Elasticsearch
             LogEntry savedEntry = logEntryRepository.save(logEntry);
             
-            // Send to Kafka for real-time processing
-            kafkaTemplate.send("log-events", savedEntry);
+            // Send to Kafka for real-time processing (if available)
+            if (kafkaTemplate != null) {
+                kafkaTemplate.send("log-events", savedEntry);
+            }
             
             // Update statistics
             processedCount.incrementAndGet();
@@ -122,9 +124,11 @@ public class LogIngestionService {
             // Batch save to Elasticsearch
             List<LogEntry> savedEntries = (List<LogEntry>) logEntryRepository.saveAll(processedLogs);
             
-            // Send batch to Kafka
-            for (LogEntry entry : savedEntries) {
-                kafkaTemplate.send("log-events", entry);
+            // Send batch to Kafka (if available)
+            if (kafkaTemplate != null) {
+                for (LogEntry entry : savedEntries) {
+                    kafkaTemplate.send("log-events", entry);
+                }
             }
             
             // Update statistics
@@ -354,7 +358,7 @@ public class LogIngestionService {
         }
         
         // Add metadata
-        Map<String, Object> metadata = new HashMap<>();
+        Map<String, String> metadata = new HashMap<>();
         metadata.put("ingestionTime", LocalDateTime.now().toString());
         metadata.put("processingVersion", "1.0");
         logEntry.setMetadata(metadata);

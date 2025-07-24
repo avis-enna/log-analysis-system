@@ -7,35 +7,42 @@ spring:
   application:
     name: log-analyzer
   
-  # Database Configuration
+  # Database Configuration (H2 for local development by default)
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/loganalyzer}
-    username: ${DATABASE_USERNAME:loganalyzer}
-    password: ${DATABASE_PASSWORD:password}
-    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL:jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-  
+
+  # H2 Console (for development)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      ddl-auto: ${JPA_DDL_AUTO:create-drop}
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
         format_sql: true
         jdbc:
           batch_size: 25
         order_inserts: true
         order_updates: true
   
-  # Redis Configuration
+  # Redis Configuration (disabled for local development)
   data:
     redis:
+      enabled: ${REDIS_ENABLED:false}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
@@ -45,9 +52,10 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
-  
-  # Kafka Configuration
+
+  # Kafka Configuration (disabled for local development)
   kafka:
+    enabled: ${KAFKA_ENABLED:false}
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -74,8 +82,9 @@ spring:
         cache.max.bytes.buffering: 10240
         state.dir: ${KAFKA_STREAMS_STATE_DIR:/tmp/kafka-streams}
 
-# Elasticsearch Configuration
+# Elasticsearch Configuration (disabled for local development)
 elasticsearch:
+  enabled: ${ELASTICSEARCH_ENABLED:false}
   host: ${ELASTICSEARCH_HOST:localhost}
   port: ${ELASTICSEARCH_PORT:9200}
   username: ${ELASTICSEARCH_USERNAME:}
@@ -95,8 +104,9 @@ elasticsearch:
       replicas: 1
       refresh-interval: 5s
 
-# InfluxDB Configuration
+# InfluxDB Configuration (disabled for local development)
 influxdb:
+  enabled: ${INFLUXDB_ENABLED:false}
   url: ${INFLUXDB_URL:http://localhost:8086}
   token: ${INFLUXDB_TOKEN:}
   org: ${INFLUXDB_ORG:loganalyzer}
@@ -112,14 +122,14 @@ security:
     expiration: 86400000 # 24 hours
     refresh-expiration: 604800000 # 7 days
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,https://*.railway.app}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://*.railway.app}
     allowed-methods: GET,POST,PUT,DELETE,OPTIONS
     allowed-headers: "*"
     allow-credentials: true
 
 # WebSocket Configuration
 websocket:
-  allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:3000,https://*.railway.app}
+  allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://*.railway.app}
   heartbeat:
     interval: 25000
     timeout: 60000

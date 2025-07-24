@@ -8,6 +8,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -25,9 +26,9 @@ import java.util.concurrent.CompletableFuture;
  */
 @Service
 public class NotificationService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
-    
+
     private final JavaMailSender mailSender;
     private final RestTemplate restTemplate;
     
@@ -46,7 +47,7 @@ public class NotificationService {
     @Value("${alerting.notification.webhook.retry-attempts:3}")
     private int retryAttempts;
     
-    public NotificationService(JavaMailSender mailSender, RestTemplate restTemplate) {
+    public NotificationService(@Autowired(required = false) JavaMailSender mailSender, RestTemplate restTemplate) {
         this.mailSender = mailSender;
         this.restTemplate = restTemplate;
     }
@@ -86,16 +87,21 @@ public class NotificationService {
      * Sends email notification for alert.
      */
     private void sendEmailNotification(Alert alert) {
+        if (mailSender == null) {
+            logger.debug("Email notification skipped - JavaMailSender not available");
+            return;
+        }
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(getEmailRecipients(alert));
             message.setSubject(formatEmailSubject(alert));
             message.setText(formatEmailBody(alert));
-            
+
             mailSender.send(message);
             logger.debug("Email notification sent for alert: {}", alert.getId());
-            
+
         } catch (Exception e) {
             logger.error("Failed to send email notification for alert: {}", alert.getId(), e);
         }
