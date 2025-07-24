@@ -25,16 +25,16 @@ print_header() { echo -e "${PURPLE}=== $1 ===${NC}"; }
 
 # Check if required scripts exist
 check_scripts() {
-    local scripts=("deploy-podman.sh" "dev-tools.sh" "monitor.sh" "db-tools.sh" "performance.sh")
+    local scripts=("deploy-podman.sh" "dev-tools.sh" "monitor.sh" "db-tools.sh" "performance.sh" "security-tools.sh" "env-manager.sh" "observability.sh" "k8s-deploy.sh")
     local missing=0
-    
+
     for script in "${scripts[@]}"; do
         if [[ ! -f "$script" ]]; then
             print_error "Missing script: $script"
             ((missing++))
         fi
     done
-    
+
     if [[ $missing -gt 0 ]]; then
         print_error "Some required scripts are missing. Please ensure all scripts are present."
         exit 1
@@ -43,14 +43,14 @@ check_scripts() {
 
 # Make scripts executable
 make_executable() {
-    local scripts=("deploy-podman.sh" "dev-tools.sh" "monitor.sh" "db-tools.sh" "performance.sh" "test-deployment.sh")
-    
+    local scripts=("deploy-podman.sh" "dev-tools.sh" "monitor.sh" "db-tools.sh" "performance.sh" "security-tools.sh" "env-manager.sh" "observability.sh" "k8s-deploy.sh" "test-deployment.sh")
+
     for script in "${scripts[@]}"; do
         if [[ -f "$script" ]]; then
             chmod +x "$script"
         fi
     done
-    
+
     print_success "All scripts are now executable"
 }
 
@@ -257,42 +257,157 @@ performance_mgmt() {
     esac
 }
 
+# Security management
+security_mgmt() {
+    print_header "SECURITY MANAGEMENT"
+
+    echo -e "${CYAN}Choose security operation:${NC}"
+    echo "1. Container vulnerability scanning"
+    echo "2. Security configuration audit"
+    echo "3. Apply security hardening"
+    echo "4. Compliance check"
+    echo "5. Full security assessment"
+
+    read -p "Select option (1-5): " -n 1 -r
+    echo ""
+
+    case $REPLY in
+        1) ./security-tools.sh scan ;;
+        2) ./security-tools.sh audit ;;
+        3) ./security-tools.sh harden ;;
+        4) ./security-tools.sh compliance ;;
+        5) ./security-tools.sh full-scan ;;
+        *) print_error "Invalid option" ;;
+    esac
+}
+
+# Multi-environment management
+env_mgmt() {
+    print_header "MULTI-ENVIRONMENT MANAGEMENT"
+
+    echo -e "${CYAN}Choose environment operation:${NC}"
+    echo "1. Initialize environments"
+    echo "2. Deploy to development"
+    echo "3. Deploy to staging"
+    echo "4. Deploy to production"
+    echo "5. List environment status"
+    echo "6. Stop environment"
+    echo "7. Clean environment"
+
+    read -p "Select option (1-7): " -n 1 -r
+    echo ""
+
+    case $REPLY in
+        1) ./env-manager.sh init ;;
+        2) ./env-manager.sh deploy dev ;;
+        3) ./env-manager.sh deploy staging ;;
+        4) ./env-manager.sh deploy prod ;;
+        5) ./env-manager.sh list ;;
+        6)
+            echo "Available environments: dev, staging, prod"
+            read -p "Enter environment: " env
+            ./env-manager.sh stop "$env"
+            ;;
+        7)
+            echo "Available environments: dev, staging, prod"
+            read -p "Enter environment: " env
+            ./env-manager.sh clean "$env"
+            ;;
+        *) print_error "Invalid option" ;;
+    esac
+}
+
+# Observability management
+observability_mgmt() {
+    print_header "OBSERVABILITY MANAGEMENT"
+
+    echo -e "${CYAN}Choose observability operation:${NC}"
+    echo "1. Deploy observability stack"
+    echo "2. Create dashboard templates"
+    echo "3. Show observability status"
+    echo "4. Stop observability stack"
+    echo "5. Clean observability stack"
+
+    read -p "Select option (1-5): " -n 1 -r
+    echo ""
+
+    case $REPLY in
+        1) ./observability.sh deploy ;;
+        2) ./observability.sh dashboards ;;
+        3) ./observability.sh status ;;
+        4) ./observability.sh stop ;;
+        5) ./observability.sh clean ;;
+        *) print_error "Invalid option" ;;
+    esac
+}
+
+# Kubernetes management
+k8s_mgmt() {
+    print_header "KUBERNETES MANAGEMENT"
+
+    echo -e "${CYAN}Choose Kubernetes operation:${NC}"
+    echo "1. Check prerequisites"
+    echo "2. Create manifests"
+    echo "3. Deploy to Kubernetes"
+    echo "4. Show deployment status"
+    echo "5. Scale deployment"
+    echo "6. Clean deployment"
+
+    read -p "Select option (1-6): " -n 1 -r
+    echo ""
+
+    case $REPLY in
+        1) ./k8s-deploy.sh check ;;
+        2) ./k8s-deploy.sh create-manifests ;;
+        3) ./k8s-deploy.sh deploy ;;
+        4) ./k8s-deploy.sh status ;;
+        5)
+            echo "Components: backend, frontend"
+            read -p "Enter component: " component
+            read -p "Enter replicas: " replicas
+            ./k8s-deploy.sh scale "$component" "$replicas"
+            ;;
+        6) ./k8s-deploy.sh clean ;;
+        *) print_error "Invalid option" ;;
+    esac
+}
+
 # Troubleshooting guide
 troubleshooting() {
     print_header "TROUBLESHOOTING GUIDE"
-    
+
     echo -e "${CYAN}🔧 Common Issues and Solutions:${NC}"
     echo ""
-    
+
     echo -e "${YELLOW}1. Containers won't start:${NC}"
     echo "   - Check if ports are available: netstat -tuln | grep -E ':(3000|8080|5432|6379)'"
     echo "   - Clean and restart: ./deploy-podman.sh clean && ./deploy-podman.sh"
     echo ""
-    
+
     echo -e "${YELLOW}2. Application not accessible:${NC}"
     echo "   - Check container status: ./monitor.sh overview"
     echo "   - Check health: ./monitor.sh health"
     echo "   - View logs: ./monitor.sh logs backend"
     echo ""
-    
+
     echo -e "${YELLOW}3. Database connection issues:${NC}"
     echo "   - Check PostgreSQL: ./db-tools.sh stats"
     echo "   - Test connection: ./dev-tools.sh db postgres"
     echo "   - Check network: ./monitor.sh network"
     echo ""
-    
+
     echo -e "${YELLOW}4. Performance issues:${NC}"
     echo "   - Check resource usage: ./performance.sh optimize"
     echo "   - Run benchmark: ./performance.sh benchmark"
     echo "   - Profile memory: ./performance.sh memory-profile"
     echo ""
-    
-    echo -e "${YELLOW}5. Development issues:${NC}"
-    echo "   - Use development mode: ./dev-tools.sh dev"
-    echo "   - Enable debug mode: ./dev-tools.sh debug"
-    echo "   - Check live logs: ./dev-tools.sh logs backend"
+
+    echo -e "${YELLOW}5. Security concerns:${NC}"
+    echo "   - Run security scan: ./security-tools.sh scan"
+    echo "   - Security audit: ./security-tools.sh audit"
+    echo "   - Apply hardening: ./security-tools.sh harden"
     echo ""
-    
+
     echo -e "${CYAN}🆘 Emergency Commands:${NC}"
     echo "   - Stop everything: ./deploy-podman.sh stop"
     echo "   - Clean everything: ./deploy-podman.sh clean"
@@ -319,25 +434,33 @@ interactive_menu() {
         echo "  3. 📊 System Monitoring"
         echo "  4. 🗄️  Database Management"
         echo "  5. ⚡ Performance Management"
-        echo "  6. 🔧 Troubleshooting Guide"
-        echo "  7. 🛑 Stop All Services"
-        echo "  8. 🧹 Clean Everything"
-        echo "  9. ❌ Exit"
+        echo "  6. 🔒 Security Tools"
+        echo "  7. 🌍 Multi-Environment"
+        echo "  8. 📈 Observability Stack"
+        echo "  9. ☸️  Kubernetes Deploy"
+        echo " 10. 🔧 Troubleshooting Guide"
+        echo " 11. 🛑 Stop All Services"
+        echo " 12. 🧹 Clean Everything"
+        echo " 13. ❌ Exit"
         echo ""
         
-        read -p "Select operation (1-9): " -n 1 -r
+        read -p "Select operation (1-13): " -n 2 -r
         echo ""
-        
+
         case $REPLY in
             1) quick_deploy ;;
             2) dev_setup ;;
             3) monitoring ;;
             4) database_mgmt ;;
             5) performance_mgmt ;;
-            6) troubleshooting ;;
-            7) ./deploy-podman.sh stop ;;
-            8) ./deploy-podman.sh clean ;;
-            9) print_success "Goodbye!"; exit 0 ;;
+            6) security_mgmt ;;
+            7) env_mgmt ;;
+            8) observability_mgmt ;;
+            9) k8s_mgmt ;;
+            10) troubleshooting ;;
+            11) ./deploy-podman.sh stop ;;
+            12) ./deploy-podman.sh clean ;;
+            13) print_success "Goodbye!"; exit 0 ;;
             *) print_error "Invalid option" ;;
         esac
         
