@@ -2,16 +2,27 @@ package com.loganalyzer.controller;
 
 import com.loganalyzer.dto.SearchQuery;
 import com.loganalyzer.dto.SearchResult;
+import com.loganalyzer.exception.SearchException;
 import com.loganalyzer.service.SearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -26,6 +37,7 @@ import java.util.Map;
 @RequestMapping("/search")
 @Tag(name = "Search", description = "Log search and query operations")
 @CrossOrigin(origins = {"http://localhost:3001", "http://localhost:3000", "https://*.railway.app"})
+@Validated
 public class SearchController {
     
     private static final Logger logger = LoggerFactory.getLogger(SearchController.class);
@@ -37,19 +49,96 @@ public class SearchController {
      * Performs comprehensive log search with advanced filtering and aggregations.
      */
     @PostMapping
-    @Operation(summary = "Search logs", description = "Performs comprehensive log search with filtering, aggregations, and highlighting")
-    public ResponseEntity<SearchResult> search(@Valid @RequestBody SearchQuery query) {
+    @Operation(
+        summary = "Search logs with advanced filtering",
+        description = """
+            Performs comprehensive log search with advanced filtering, aggregations, and highlighting.
+
+            **Query Syntax Examples:**
+            - `error AND database` - Find logs containing both "error" and "database"
+            - `level:ERROR` - Find all ERROR level logs
+            - `source:web-server AND timestamp:[2023-01-01 TO 2023-01-31]` - Time-based search
+            - `message:"connection timeout" OR message:"database error"` - Multiple conditions
+
+            **Performance Notes:**
+            - Results are cached for 5 minutes for identical queries
+            - Maximum page size is 1000 for performance reasons
+            - Time range searches are optimized with database indexes
+            """)
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Search completed successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = SearchResult.class),
+                examples = @ExampleObject(
+                    name = "Successful search",
+                    value = """
+                        {
+                          "logs": [
+                            {
+                              "id": "log-123",
+                              "timestamp": "2023-12-01T10:30:00",
+                              "level": "ERROR",
+                              "message": "Database connection failed",
+                              "source": "web-server",
+                              "host": "web-01"
+                            }
+                          ],
+                          "totalHits": 1,
+                          "page": 0,
+                          "size": 100,
+                          "searchTimeMs": 45
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid search query or parameters",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "Validation error",
+                    value = """
+                        {
+                          "errorCode": "VALIDATION_ERROR",
+                          "message": "Input validation failed",
+                          "details": {
+                            "query": "Query string cannot be empty",
+                            "size": "Size cannot exceed 1000"
+                          },
+                          "timestamp": "2023-12-01T10:30:00"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error during search",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<SearchResult> search(
+        @Parameter(
+            description = "Search query with filters and options",
+            required = true,
+            schema = @Schema(implementation = SearchQuery.class)
+        )
+        @Valid @RequestBody SearchQuery query) {
         logger.info("Search request: query='{}', page={}, size={}", query.getQuery(), query.getPage(), query.getSize());
-        
-        try {
-            SearchResult result = searchService.search(query);
-            logger.info("Search completed: {} hits in {}ms", result.getTotalHits(), result.getSearchTimeMs());
-            return ResponseEntity.ok(result);
-            
-        } catch (Exception e) {
-            logger.error("Search failed for query: {}", query.getQuery(), e);
-            return ResponseEntity.internalServerError().build();
+
+        // Additional validation
+        if (query.getQuery() == null || query.getQuery().trim().isEmpty()) {
+            throw new SearchException("Query cannot be empty", query.getQuery());
         }
+
+        SearchResult result = searchService.search(query);
+        logger.info("Search completed: {} hits in {}ms", result.getTotalHits(), result.getSearchTimeMs());
+        return ResponseEntity.ok(result);
     }
     
     /**
@@ -58,22 +147,20 @@ public class SearchController {
     @GetMapping("/quick")
     @Operation(summary = "Quick search", description = "Performs quick search for simple text queries")
     public ResponseEntity<SearchResult> quickSearch(
-            @Parameter(description = "Search query string") @RequestParam String q,
-            @Parameter(description = "Page number (1-based)") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "100") int size) {
-        
+            @Parameter(description = "Search query string")
+            @RequestParam @NotBlank(message = "Query cannot be blank")
+            @Size(max = 1000, message = "Query cannot exceed 1000 characters") String q,
+            @Parameter(description = "Page number (0-based)")
+            @RequestParam(defaultValue = "0") @Min(0) @Max(1000) int page,
+            @Parameter(description = "Page size")
+            @RequestParam(defaultValue = "100") @Min(1) @Max(1000) int size) {
+
         SearchQuery query = new SearchQuery(q);
         query.setPage(page);
         query.setSize(size);
-        
-        try {
-            SearchResult result = searchService.quickSearch(query);
-            return ResponseEntity.ok(result);
-            
-        } catch (Exception e) {
-            logger.error("Quick search failed for query: {}", q, e);
-            return ResponseEntity.internalServerError().build();
-        }
+
+        SearchResult result = searchService.quickSearch(query);
+        return ResponseEntity.ok(result);
     }
     
     /**

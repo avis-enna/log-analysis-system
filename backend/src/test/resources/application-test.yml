@@ -1,0 +1,88 @@
+# Test Configuration
+# This configuration is used for running tests with H2 database
+
+spring:
+  # H2 Database for Testing
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  # H2 Console for debugging tests
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+
+# Disable external services for testing
+elasticsearch:
+  enabled: false
+
+kafka:
+  enabled: false
+
+redis:
+  enabled: false
+
+influxdb:
+  enabled: false
+
+# Security configuration for tests
+security:
+  jwt:
+    secret: test-secret-key-for-testing-only-not-for-production-use
+    expiration: 86400000
+    refresh-expiration: 604800000
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+
+# Logging configuration for tests
+logging:
+  level:
+    com.loganalyzer: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.security: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management endpoints for testing
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Application limits for testing
+app:
+  limits:
+    max-search-results: 100
+    max-dashboard-widgets: 10
+    max-concurrent-searches: 10
+    max-file-upload-size: 10MB
+  cache:
+    ttl:
+      search-results: 60
+      dashboard-data: 30
+      user-sessions: 300
+      system-stats: 10
+  sample-data:
+    enabled: true
+    count: 10

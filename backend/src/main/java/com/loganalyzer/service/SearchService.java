@@ -1,13 +1,17 @@
 package com.loganalyzer.service;
 
+import com.loganalyzer.config.CacheConfiguration;
 import com.loganalyzer.dto.SearchQuery;
 import com.loganalyzer.dto.SearchResult;
+import com.loganalyzer.exception.SearchException;
 import com.loganalyzer.model.LogEntry;
-import com.loganalyzer.repository.LogEntryRepository;
+import com.loganalyzer.repository.LogEntryJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -27,24 +31,30 @@ public class SearchService {
     private static final Logger logger = LoggerFactory.getLogger(SearchService.class);
     
     @Autowired
-    private LogEntryRepository logEntryRepository;
+    private LogEntryJpaRepository logEntryRepository;
     
     /**
      * Performs a comprehensive search with advanced query parsing.
      */
-    @Cacheable(value = "searchResults", key = "#query.toString()")
+    @Cacheable(value = CacheConfiguration.CacheNames.SEARCH_RESULTS,
+               key = "#query.query + '_' + #query.page + '_' + #query.size + '_' + #query.hashCode()")
     public SearchResult search(SearchQuery query) {
         long startTime = System.currentTimeMillis();
-        
-        logger.info("Executing search: query='{}', page={}, size={}", 
+
+        logger.info("Executing search: query='{}', page={}, size={}",
                    query.getQuery(), query.getPage(), query.getSize());
-        
+
+        // Validate query
+        if (query.getQuery() == null || query.getQuery().trim().isEmpty()) {
+            throw new SearchException("Search query cannot be empty");
+        }
+
         try {
             Pageable pageable = createPageable(query);
-            
+
             // Parse the query and execute search
             var page = executeSearch(query, pageable);
-            
+
             SearchResult result = new SearchResult(
                 page.getContent(),
                 page.getTotalElements(),
@@ -261,15 +271,45 @@ public class SearchService {
     /**
      * Gets field suggestions for autocomplete.
      */
+    @Cacheable(value = CacheConfiguration.CacheNames.FIELD_SUGGESTIONS,
+               key = "#field + '_' + #prefix + '_' + #limit")
     public List<String> getFieldSuggestions(String field, String prefix, int limit) {
+        logger.debug("Getting field suggestions for field: {}, prefix: {}", field, prefix);
+
         List<String> suggestions = new ArrayList<>();
 
-        if ("level".equals(field)) {
-            suggestions.addAll(Arrays.asList("ERROR", "WARN", "INFO", "DEBUG", "TRACE"));
-        } else if ("application".equals(field)) {
-            suggestions.addAll(Arrays.asList("web", "api", "worker", "scheduler", "batch"));
-        } else if ("host".equals(field)) {
-            suggestions.addAll(Arrays.asList("web-01", "web-02", "api-01", "api-02", "worker-01"));
+        // Get suggestions from database based on field type
+        try {
+            switch (field.toLowerCase()) {
+                case "level":
+                    suggestions = logEntryRepository.findDistinctLevels();
+                    break;
+                case "application":
+                    suggestions = logEntryRepository.findDistinctApplications();
+                    break;
+                case "host":
+                    suggestions = logEntryRepository.findDistinctHosts();
+                    break;
+                case "source":
+                    suggestions = logEntryRepository.findDistinctSources();
+                    break;
+                case "environment":
+                    suggestions = logEntryRepository.findDistinctEnvironments();
+                    break;
+                default:
+                    // Fallback to mock data for unknown fields
+                    suggestions.addAll(Arrays.asList("example1", "example2", "example3"));
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to get field suggestions from database, using fallback", e);
+            // Fallback suggestions
+            if ("level".equals(field)) {
+                suggestions.addAll(Arrays.asList("ERROR", "WARN", "INFO", "DEBUG", "TRACE"));
+            } else if ("application".equals(field)) {
+                suggestions.addAll(Arrays.asList("web", "api", "worker", "scheduler", "batch"));
+            } else if ("host".equals(field)) {
+                suggestions.addAll(Arrays.asList("web-01", "web-02", "api-01", "api-02", "worker-01"));
+            }
         }
 
         return suggestions.stream()
@@ -281,11 +321,26 @@ public class SearchService {
     /**
      * Gets available searchable fields.
      */
+    @Cacheable(value = CacheConfiguration.CacheNames.AVAILABLE_FIELDS)
     public List<String> getAvailableFields() {
+        logger.debug("Getting available searchable fields");
         return Arrays.asList(
             "level", "application", "host", "message", "timestamp",
-            "thread", "logger", "exception", "userId", "sessionId"
+            "thread", "logger", "exception", "userId", "sessionId",
+            "source", "environment", "ipAddress", "responseTime"
         );
+    }
+
+    /**
+     * Clears search-related caches when new data is ingested.
+     */
+    @CacheEvict(value = {
+        CacheConfiguration.CacheNames.SEARCH_RESULTS,
+        CacheConfiguration.CacheNames.LOG_STATISTICS,
+        CacheConfiguration.CacheNames.FIELD_SUGGESTIONS
+    }, allEntries = true)
+    public void clearSearchCaches() {
+        logger.info("Cleared search-related caches due to data changes");
     }
 
     /**

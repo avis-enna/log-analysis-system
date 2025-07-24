@@ -1,9 +1,9 @@
 package com.loganalyzer.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import com.loganalyzer.validation.ValidTimeRange;
+import jakarta.validation.constraints.*;
+import jakarta.validation.Valid;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,31 +13,49 @@ import java.util.Map;
  * Represents a search query for log analysis.
  * Supports Splunk-like search syntax and filtering capabilities.
  */
+@ValidTimeRange(maxDays = 30, message = "Time range cannot exceed 30 days and start time must be before end time")
 public class SearchQuery {
     
     @NotBlank(message = "Query string cannot be empty")
+    @Size(max = 1000, message = "Query string cannot exceed 1000 characters")
     private String query;
-    
+
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @PastOrPresent(message = "Start time cannot be in the future")
     private LocalDateTime startTime;
-    
+
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @PastOrPresent(message = "End time cannot be in the future")
     private LocalDateTime endTime;
-    
-    @Min(value = 1, message = "Page must be at least 1")
-    private int page = 1;
-    
+
+    @Min(value = 0, message = "Page must be at least 0")
+    @Max(value = 1000, message = "Page cannot exceed 1000")
+    private int page = 0;
+
     @Min(value = 1, message = "Size must be at least 1")
-    @Max(value = 10000, message = "Size cannot exceed 10000")
+    @Max(value = 1000, message = "Size cannot exceed 1000 for performance reasons")
     private int size = 100;
     
-    private List<String> sources;
-    private List<String> levels;
-    private List<String> hosts;
-    private List<String> applications;
-    private List<String> environments;
-    
-    private Map<String, String> filters;
+    @Size(max = 50, message = "Cannot filter by more than 50 sources")
+    private List<@NotBlank(message = "Source name cannot be blank") String> sources;
+
+    @Size(max = 10, message = "Cannot filter by more than 10 log levels")
+    private List<@Pattern(regexp = "^(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)$", message = "Invalid log level") String> levels;
+
+    @Size(max = 100, message = "Cannot filter by more than 100 hosts")
+    private List<@NotBlank(message = "Host name cannot be blank") String> hosts;
+
+    @Size(max = 50, message = "Cannot filter by more than 50 applications")
+    private List<@NotBlank(message = "Application name cannot be blank") String> applications;
+
+    @Size(max = 20, message = "Cannot filter by more than 20 environments")
+    private List<@Pattern(regexp = "^(dev|test|staging|prod|production)$", message = "Invalid environment") String> environments;
+
+    @Size(max = 20, message = "Cannot have more than 20 custom filters")
+    private Map<@NotBlank String, @NotBlank String> filters;
+
+    @Valid
+    @Size(max = 5, message = "Cannot sort by more than 5 fields")
     private List<SortField> sortFields;
     
     private boolean includeStackTrace = false;

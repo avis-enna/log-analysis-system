@@ -7,26 +7,32 @@ spring:
   application:
     name: log-analyzer
   
-  # Database Configuration
+  # Database Configuration (H2 for local development by default)
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/loganalyzer}
-    username: ${DATABASE_USERNAME:loganalyzer}
-    password: ${DATABASE_PASSWORD:password}
-    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL:jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-  
+
+  # H2 Console (for development)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      ddl-auto: ${JPA_DDL_AUTO:create-drop}
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
         format_sql: true
         jdbc:
           batch_size: 25
@@ -162,12 +168,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,loggers
+        include: health,info,metrics,prometheus,loggers,caches,env,mappings,beans
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
       show-components: always
+      probes:
+        enabled: true
     metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    loggers:
+      enabled: true
+    caches:
       enabled: true
   metrics:
     export:
@@ -176,6 +191,8 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        log.search.duration: true
+        log.ingestion.duration: true
       percentiles:
         http.server.requests: 0.5, 0.95, 0.99
       sla:

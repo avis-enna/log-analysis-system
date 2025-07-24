@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +29,7 @@ public class AlertService {
     @Autowired
     private AlertRepository alertRepository;
     
-    @Autowired
+    @Autowired(required = false)
     private SimpMessagingTemplate messagingTemplate;
     
     @Autowired
@@ -233,7 +234,9 @@ public class AlertService {
             Alert savedAlert = alertRepository.save(alert);
             
             // Send real-time notification
-            messagingTemplate.convertAndSend("/topic/alerts", savedAlert);
+            if (messagingTemplate != null) {
+                messagingTemplate.convertAndSend("/topic/alerts", savedAlert);
+            }
             
             // Send external notifications
             notificationService.sendAlertNotification(savedAlert);
@@ -358,7 +361,9 @@ public class AlertService {
             Alert savedAlert = alertRepository.save(alert);
             
             // Send real-time update
-            messagingTemplate.convertAndSend("/topic/alerts/acknowledged", savedAlert);
+            if (messagingTemplate != null) {
+                messagingTemplate.convertAndSend("/topic/alerts/acknowledged", savedAlert);
+            }
             
             logger.info("Alert {} acknowledged by {}", alertId, acknowledgedBy);
             return savedAlert;
@@ -378,7 +383,9 @@ public class AlertService {
             Alert savedAlert = alertRepository.save(alert);
             
             // Send real-time update
-            messagingTemplate.convertAndSend("/topic/alerts/resolved", savedAlert);
+            if (messagingTemplate != null) {
+                messagingTemplate.convertAndSend("/topic/alerts/resolved", savedAlert);
+            }
             
             logger.info("Alert {} resolved by {}", alertId, resolvedBy);
             return savedAlert;
