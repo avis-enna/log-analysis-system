@@ -38,25 +38,7 @@ public class LocalTestingConfiguration {
     @Value("${test-data.log-count:1000}")
     private int logCount;
     
-    /**
-     * Mock Elasticsearch operations for local testing.
-     */
-    @Bean
-    @Profile("local")
-    public ElasticsearchOperations mockElasticsearchOperations() {
-        logger.info("Using mock Elasticsearch operations for local testing");
-        return new MockElasticsearchOperations();
-    }
-    
-    /**
-     * Mock Redis template for local testing.
-     */
-    @Bean
-    @Profile("local")
-    public RedisTemplate<String, Object> mockRedisTemplate() {
-        logger.info("Using mock Redis template for local testing");
-        return new MockRedisTemplate<>();
-    }
+
     
     /**
      * Command line runner to generate sample data on startup.
@@ -198,40 +180,4 @@ public class LocalTestingConfiguration {
         }
     }
     
-    /**
-     * Mock implementation of ElasticsearchOperations for local testing.
-     */
-    private static class MockElasticsearchOperations implements ElasticsearchOperations {
-        // Implement minimal required methods for testing
-        // This is a simplified mock - in a real implementation,
-        // you would use a proper mocking framework like Mockito
-        
-        @Override
-        public String index(Object entity) {
-            return "mock-index-" + System.currentTimeMillis();
-        }
-        
-        @Override
-        public boolean exists(String id, Class<?> clazz) {
-            return true; // Mock implementation
-        }
-        
-        // Add other required method implementations as needed
-        // For brevity, only showing key methods
-    }
-    
-    /**
-     * Mock implementation of RedisTemplate for local testing.
-     */
-    private static class MockRedisTemplate<K, V> extends RedisTemplate<K, V> {
-        // Mock implementation that stores data in memory
-        private final java.util.Map<K, V> mockStorage = new java.util.concurrent.ConcurrentHashMap<>();
-        
-        @Override
-        public void opsForValue() {
-            // Return mock value operations
-        }
-        
-        // Add other required method implementations as needed
-    }
 }

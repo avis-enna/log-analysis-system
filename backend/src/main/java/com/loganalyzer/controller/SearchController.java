@@ -25,7 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/search")
 @Tag(name = "Search", description = "Log search and query operations")
-@CrossOrigin(origins = {"http://localhost:3000", "https://*.railway.app"})
+@CrossOrigin(origins = {"http://localhost:3001", "http://localhost:3000", "https://*.railway.app"})
 public class SearchController {
     
     private static final Logger logger = LoggerFactory.getLogger(SearchController.class);
@@ -115,7 +115,7 @@ public class SearchController {
             if (endTime == null) endTime = LocalDateTime.now();
             if (environment == null) environment = "production";
             
-            SearchResult result = searchService.searchByApplication(application, environment, startTime, endTime, page, size);
+            SearchResult result = searchService.searchByApplication(application, page, size);
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
@@ -141,7 +141,7 @@ public class SearchController {
             if (startTime == null) startTime = LocalDateTime.now().minusHours(24);
             if (endTime == null) endTime = LocalDateTime.now();
             
-            SearchResult result = searchService.searchByPattern(pattern, mode, startTime, endTime, page, size);
+            SearchResult result = searchService.searchByPattern(pattern, mode.toString(), startTime, endTime, page, size);
             return ResponseEntity.ok(result);
             
         } catch (Exception e) {
