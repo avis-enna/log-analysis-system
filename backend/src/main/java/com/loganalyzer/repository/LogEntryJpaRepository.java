@@ -45,19 +45,19 @@ public interface LogEntryJpaRepository extends JpaRepository<LogEntry, String>, 
     Page<LogEntry> findByApplicationAndEnvironmentAndTimestampBetween(
         String application, String environment, LocalDateTime start, LocalDateTime end, Pageable pageable);
     
-    // Full-text search queries (using SQL LIKE for H2)
-    @Query("SELECT l FROM LogEntry l WHERE l.message LIKE %:message%")
+    // Full-text search queries (using SQL LIKE for H2 with case-insensitive search)
+    @Query("SELECT l FROM LogEntry l WHERE LOWER(l.message) LIKE LOWER(CONCAT('%', :message, '%'))")
     Page<LogEntry> findByMessageContaining(@Param("message") String message, Pageable pageable);
     
-    @Query("SELECT l FROM LogEntry l WHERE l.message LIKE %:message% AND l.timestamp BETWEEN :start AND :end")
+    @Query("SELECT l FROM LogEntry l WHERE LOWER(l.message) LIKE LOWER(CONCAT('%', :message, '%')) AND l.timestamp BETWEEN :start AND :end")
     Page<LogEntry> findByMessageContainingAndTimestampBetween(
         @Param("message") String message, 
         @Param("start") LocalDateTime start, 
         @Param("end") LocalDateTime end, 
         Pageable pageable);
     
-    // Multi-field search (simplified for SQL)
-    @Query("SELECT l FROM LogEntry l WHERE l.message LIKE %:query% OR l.logger LIKE %:query% OR l.thread LIKE %:query%")
+    // Multi-field search (simplified for SQL with case-insensitive search)
+    @Query("SELECT l FROM LogEntry l WHERE LOWER(l.message) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(l.logger) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(l.thread) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<LogEntry> findByMultiFieldSearch(@Param("query") String query, Pageable pageable);
     
     // Error and exception queries
