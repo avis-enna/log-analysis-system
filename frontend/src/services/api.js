@@ -254,6 +254,11 @@ export const dashboardAPI = {
   getSystemHealth: () => {
     return apiClient.get('/dashboard/health');
   },
+  
+  // Get intelligent health insights based on log analysis
+  getHealthInsights: () => {
+    return apiClient.get('/dashboard/health-insights');
+  },
 };
 
 /**
@@ -348,17 +353,40 @@ export const apiUtils = {
     return apiClient.get('/version');
   },
   
+  // Get API documentation
+  getApiDocs: () => {
+    return apiClient.get('/docs');
+  },
+};
+
+/**
+ * Upload API endpoints
+ */
+export const uploadAPI = {
   // Upload log file
   uploadLogFile: (file, source) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('source', source);
+    if (source) {
+      formData.append('source', source);
+    }
     
-    return apiClient.post('/upload', formData, {
+    return apiClient.post('/logs/upload/file', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
+  },
+
+  // Upload log text
+  uploadLogText: (text, source) => {
+    const formData = new FormData();
+    formData.append('text', text);
+    if (source) {
+      formData.append('source', source);
+    }
+    
+    return apiClient.post('/logs/upload/text', formData);
   },
 };
 
@@ -366,11 +394,14 @@ export const apiUtils = {
 export { apiClient };
 
 // Export default API object
-export default {
+const api = {
   search: searchAPI,
   alerts: alertsAPI,
   dashboard: dashboardAPI,
   analytics: analyticsAPI,
   settings: settingsAPI,
+  upload: uploadAPI,
   utils: apiUtils,
 };
+
+export default api;

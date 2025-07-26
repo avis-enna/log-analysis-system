@@ -39,6 +39,9 @@ public class LogIngestionService {
     @Autowired
     private AlertService alertService;
     
+    @Autowired
+    private AlertGenerationService alertGenerationService;
+    
     @Value("${log-processing.batch-size:1000}")
     private int batchSize;
     
@@ -96,6 +99,9 @@ public class LogIngestionService {
             
             // Check for alerts
             alertService.checkLogForAlerts(savedEntry);
+            
+            // Generate real-time alerts based on this log entry
+            alertGenerationService.analyzeLogAndGenerateAlerts(savedEntry);
             
             logger.debug("Log ingested successfully: {}", savedEntry.getId());
             return CompletableFuture.completedFuture(savedEntry);
@@ -170,6 +176,7 @@ public class LogIngestionService {
      */
     private LogEntry parseLogEntry(String rawLog, String source) {
         LogEntry logEntry = new LogEntry();
+        logEntry.setId(UUID.randomUUID().toString());
         logEntry.setSource(source);
         logEntry.setTimestamp(LocalDateTime.now());
         
@@ -375,9 +382,23 @@ public class LogIngestionService {
             tags.add("http");
         }
         
-        Map<String, String> tagMap = new HashMap<>();
-        tags.forEach(tag -> tagMap.put(tag, "true"));
-        logEntry.setTags(tagMap);
+        // Always add at least one tag to avoid constraint issues
+        if (tags.isEmpty()) {
+            tags.add("general");
+        }
+        
+        // Only set tags if we have non-empty tags
+        if (!tags.isEmpty()) {
+            Map<String, String> tagMap = new HashMap<>();
+            tags.forEach(tag -> {
+                if (tag != null && !tag.trim().isEmpty()) {
+                    tagMap.put(tag.trim(), "true");
+                }
+            });
+            if (!tagMap.isEmpty()) {
+                logEntry.setTags(tagMap);
+            }
+        }
     }
     
     /**

@@ -71,7 +71,7 @@ public class LogEntry {
     @Field(type = FieldType.Keyword)
     private String thread;
 
-    @Column(name = "stack_trace", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     @Field(type = FieldType.Text)
     private String stackTrace;
 
@@ -84,8 +84,8 @@ public class LogEntry {
 
     @ElementCollection
     @CollectionTable(name = "log_entry_tags", joinColumns = @JoinColumn(name = "log_entry_id"))
-    @MapKeyColumn(name = "tag_key")
-    @Column(name = "tag_value")
+    @MapKeyColumn(name = "tags_key")
+    @Column(name = "tag")
     @Field(type = FieldType.Object)
     private Map<String, String> tags;
 

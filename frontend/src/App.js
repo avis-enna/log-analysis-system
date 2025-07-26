@@ -10,6 +10,8 @@ import Search from './pages/Search';
 import Analytics from './pages/Analytics';
 import Alerts from './pages/Alerts';
 import Settings from './pages/Settings';
+import Upload from './pages/Upload';
+import Documentation from './pages/Documentation';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner';
 import NotFound from './components/NotFound/NotFound';
@@ -77,6 +79,8 @@ function AppContent() {
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/upload" element={<Upload />} />
+                <Route path="/docs" element={<Documentation />} />
                 
                 {/* Catch-all route for 404 */}
                 <Route path="*" element={<NotFound />} />
