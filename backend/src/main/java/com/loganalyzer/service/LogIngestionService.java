@@ -39,6 +39,9 @@ public class LogIngestionService {
     @Autowired
     private AlertService alertService;
     
+    @Autowired
+    private AlertGenerationService alertGenerationService;
+    
     @Value("${log-processing.batch-size:1000}")
     private int batchSize;
     
@@ -96,6 +99,9 @@ public class LogIngestionService {
             
             // Check for alerts
             alertService.checkLogForAlerts(savedEntry);
+            
+            // Generate real-time alerts based on this log entry
+            alertGenerationService.analyzeLogAndGenerateAlerts(savedEntry);
             
             logger.debug("Log ingested successfully: {}", savedEntry.getId());
             return CompletableFuture.completedFuture(savedEntry);

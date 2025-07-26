@@ -24,6 +24,10 @@ public class AlertsController {
     @Autowired
     private AlertGenerationService alertGenerationService;
 
+    // Remove the old in-memory storage - now using the service
+    // private Map<Long, Map<String, Object>> alertStorage = new HashMap<>();
+    // private Long nextAlertId = 1L;
+
     /**
      * Get all alerts
      */
@@ -58,7 +62,7 @@ public class AlertsController {
     }
 
     /**
-     * Get open alerts
+     * Get open alerts only
      */
     @GetMapping("/open")
     public ResponseEntity<List<Map<String, Object>>> getOpenAlerts() {
@@ -151,34 +155,119 @@ public class AlertsController {
     }
 
     /**
-     * Get alert statistics
+     * Delete an alert
      */
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getAlertStats() {
+    @DeleteMapping("/{alertId}")
+    public ResponseEntity<Map<String, Object>> deleteAlert(@PathVariable Long alertId) {
         try {
-            Map<String, Object> stats = alertGenerationService.getAlertStats();
-            return ResponseEntity.ok(stats);
+            Map<String, Object> alert = alertStorage.remove(alertId);
+            if (alert == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Alert deleted successfully");
+            
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
     /**
-     * Force regeneration of all alerts based on current log data
+     * Generate alerts based on current log data
      */
-    @PostMapping("/regenerate")
-    public ResponseEntity<Map<String, Object>> regenerateAlerts() {
+    private void generateAlertsFromLogs() {
         try {
-            alertGenerationService.regenerateAllAlerts();
+            long totalLogs = logEntryRepository.count();
+            long errorCount = logEntryRepository.countByLevelIgnoreCase("ERROR");
+            long warnCount = logEntryRepository.countByLevelIgnoreCase("WARN") + 
+                           logEntryRepository.countByLevelIgnoreCase("WARNING");
             
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "Alerts regenerated successfully");
-            response.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            // Clear existing alerts (for demo purposes)
+            if (alertStorage.isEmpty()) {
+                
+                // Generate error rate alert if error rate > 5%
+                if (totalLogs > 0 && (errorCount * 100.0 / totalLogs) > 5) {
+                    createAlert(
+                        "High Error Rate Detected",
+                        String.format("Error rate is %.1f%% (threshold: 5%%)", (errorCount * 100.0 / totalLogs)),
+                        "HIGH",
+                        "OPEN",
+                        "system"
+                    );
+                }
+                
+                // Generate alert for high log volume
+                if (totalLogs > 50) {
+                    createAlert(
+                        "High Log Volume",
+                        String.format("Total log count is %d, indicating high system activity", totalLogs),
+                        "MEDIUM",
+                        "OPEN",
+                        "monitoring"
+                    );
+                }
+                
+                // Generate warning alert if warnings > 20% of total logs
+                if (totalLogs > 0 && (warnCount * 100.0 / totalLogs) > 20) {
+                    createAlert(
+                        "High Warning Rate",
+                        String.format("Warning rate is %.1f%% (threshold: 20%%)", (warnCount * 100.0 / totalLogs)),
+                        "MEDIUM",
+                        "OPEN",
+                        "application"
+                    );
+                }
+                
+                // Generate info alert for multiple sources
+                List<String> sources = logEntryRepository.findDistinctSources();
+                if (sources.size() > 3) {
+                    createAlert(
+                        "Multiple Log Sources Active",
+                        String.format("%d different log sources detected", sources.size()),
+                        "LOW",
+                        "OPEN",
+                        "infrastructure"
+                    );
+                }
+                
+                // Add a resolved alert for demo purposes
+                createAlert(
+                    "Database Connection Issue",
+                    "Database connection timeout resolved after restart",
+                    "HIGH",
+                    "RESOLVED",
+                    "database"
+                );
+            }
             
-            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            // Silently handle errors in alert generation
         }
+    }
+
+    /**
+     * Helper method to create an alert
+     */
+    private void createAlert(String title, String message, String severity, String status, String source) {
+        Map<String, Object> alert = new HashMap<>();
+        alert.put("id", nextAlertId++);
+        alert.put("title", title);
+        alert.put("message", message);
+        alert.put("severity", severity);
+        alert.put("status", status);
+        alert.put("source", source);
+        alert.put("timestamp", LocalDateTime.now().minusMinutes((long)(Math.random() * 60)).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        alert.put("count", 1);
+        
+        if ("RESOLVED".equals(status)) {
+            alert.put("resolvedBy", "system");
+            alert.put("resolvedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            alert.put("resolutionNotes", "Auto-resolved by system");
+        }
+        
+        alertStorage.put((Long) alert.get("id"), alert);
     }
 }
