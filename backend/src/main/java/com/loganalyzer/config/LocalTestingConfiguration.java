@@ -43,10 +43,10 @@ public class LocalTestingConfiguration {
     /**
      * Command line runner to generate sample data on startup.
      */
-    @Bean
-    @Profile("local")
-    public CommandLineRunner generateSampleData(@Autowired LogEntryJpaRepository logEntryRepository) {
-        return args -> {
+    // @Bean  // Commented out to disable sample data generation
+    // @Profile("local")
+    // public CommandLineRunner generateSampleData(@Autowired LogEntryJpaRepository logEntryRepository) {
+    /*    return args -> {
             if (testDataEnabled && generateOnStartup) {
                 logger.info("Generating {} sample log entries for local testing...", logCount);
                 
@@ -56,7 +56,7 @@ public class LocalTestingConfiguration {
                 logger.info("Successfully generated {} sample log entries", sampleLogs.size());
             }
         };
-    }
+    } */
     
     /**
      * Generates sample log entries for testing.

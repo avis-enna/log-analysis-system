@@ -23,7 +23,8 @@ export const performQuickSearch = createAsyncThunk(
   'search/performQuickSearch',
   async ({ query, page = 1, size = 100 }, { rejectWithValue }) => {
     try {
-      const response = await searchAPI.quickSearch(query, page, size);
+      // Convert to 0-based pagination for backend
+      const response = await searchAPI.quickSearch(query, page - 1, size);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -263,7 +264,14 @@ const searchSlice = createSlice({
       })
       .addCase(performQuickSearch.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.results = action.payload;
+        
+        // Adjust page number to 1-based for frontend
+        const results = {
+          ...action.payload,
+          page: (action.payload?.page || 0) + 1
+        };
+        
+        state.results = results;
       })
       .addCase(performQuickSearch.rejected, (state, action) => {
         state.isLoading = false;

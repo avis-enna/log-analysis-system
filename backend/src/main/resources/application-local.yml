@@ -1,7 +1,4 @@
 spring:
-  profiles:
-    active: local
-  
   # Use H2 in-memory database for local testing
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -17,6 +14,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: true
     properties:
       hibernate:
@@ -31,18 +30,16 @@ spring:
   kafka:
     enabled: false
 
+# Disable test data generation to avoid constraint issues
+test-data:
+  enabled: false
+
 # Disable external services for local testing
 elasticsearch:
   enabled: false
 
 influxdb:
   enabled: false
-
-# Enable test data generation
-test-data:
-  enabled: true
-  generate-on-startup: true
-  log-count: 1000
 
 logging:
   level:
@@ -65,7 +62,7 @@ management:
 # Local testing configuration
 local-testing:
   mock-services: true
-  generate-sample-data: true
+  generate-sample-data: false
   enable-cors: true
 
 server:

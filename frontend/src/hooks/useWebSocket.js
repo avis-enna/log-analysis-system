@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
-import { io } from 'socket.io-client';
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Stomp } from '@stomp/stompjs';
 import toast from 'react-hot-toast';
 
 /**
- * Custom hook for WebSocket connection management
+ * Custom hook for WebSocket connection management using STOMP
  * Handles real-time updates for logs, alerts, and dashboard metrics
  */
 export const useWebSocket = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [lastMessage, setLastMessage] = useState(null);
-  const socketRef = useRef(null);
+  const stompClientRef = useRef(null);
   const dispatch = useDispatch();
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttempts = useRef(0);
@@ -19,161 +20,186 @@ export const useWebSocket = () => {
 
   // WebSocket server URL - adjust based on environment
   const getSocketUrl = useCallback(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     const host = process.env.NODE_ENV === 'production' 
       ? window.location.host 
       : 'localhost:8080';
-    return `${protocol}//${host}`;
+    return `${protocol}//${host}/api/v1/ws`;
   }, []);
 
-  // Initialize WebSocket connection
+  // Subscribe to various topics for real-time updates
+  const subscribeToTopics = useCallback(() => {
+    if (!stompClientRef.current?.connected) return;
+
+    try {
+      // Subscribe to dashboard metrics
+      stompClientRef.current.subscribe('/topic/dashboard/metrics', (message) => {
+        const data = JSON.parse(message.body);
+        console.log('Received dashboard metrics:', data);
+        setLastMessage({ type: 'metrics', data, timestamp: new Date() });
+      });
+
+      // Subscribe to log updates
+      stompClientRef.current.subscribe('/topic/logs/updates', (message) => {
+        const data = JSON.parse(message.body);
+        console.log('Received log updates:', data);
+        setLastMessage({ type: 'logs', data, timestamp: new Date() });
+      });
+
+      // Subscribe to system health
+      stompClientRef.current.subscribe('/topic/system/health', (message) => {
+        const data = JSON.parse(message.body);
+        console.log('Received system health:', data);
+        setLastMessage({ type: 'health', data, timestamp: new Date() });
+      });
+
+      // Subscribe to alerts
+      stompClientRef.current.subscribe('/topic/alerts/new', (message) => {
+        const data = JSON.parse(message.body);
+        console.log('Received new alert:', data);
+        toast.error(`Alert: ${data.title}`, {
+          description: data.message,
+          duration: 5000,
+        });
+        setLastMessage({ type: 'alert', data, timestamp: new Date() });
+      });
+
+      // Send subscription confirmation
+      stompClientRef.current.send('/app/subscribe', {}, JSON.stringify({
+        clientId: 'dashboard-client',
+        topics: ['metrics', 'logs', 'health', 'alerts']
+      }));
+
+    } catch (error) {
+      console.error('Error subscribing to topics:', error);
+    }
+  }, [dispatch]);
+
+  // Handle reconnection with exponential backoff
+  const handleReconnect = useCallback(() => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
+      setConnectionError('Failed to connect after multiple attempts');
+      return;
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+    reconnectAttempts.current += 1;
+    
+    console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
+    
+    reconnectTimeoutRef.current = setTimeout(() => {
+      connect();
+    }, delay);
+  }, []);
+
+  // Initialize WebSocket connection using STOMP
   const connect = useCallback(() => {
     try {
-      if (socketRef.current?.connected) {
+      if (stompClientRef.current?.connected) {
         return;
       }
 
       const socketUrl = getSocketUrl();
       console.log('Connecting to WebSocket:', socketUrl);
 
-      socketRef.current = io(socketUrl, {
-        transports: ['websocket', 'polling'],
-        timeout: 20000,
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        maxReconnectionAttempts: maxReconnectAttempts,
-        forceNew: true,
-      });
+      // Create SockJS connection
+      const socket = new SockJS(socketUrl);
+      stompClientRef.current = Stomp.over(socket);
+      
+      // Disable debug logging in production
+      if (process.env.NODE_ENV === 'production') {
+        stompClientRef.current.debug = null;
+      }
 
-      // Connection event handlers
-      socketRef.current.on('connect', () => {
-        console.log('WebSocket connected');
-        setIsConnected(true);
-        setConnectionError(null);
-        reconnectAttempts.current = 0;
-        
-        // Subscribe to real-time channels
-        socketRef.current.emit('subscribe', {
-          channels: ['logs', 'alerts', 'dashboard', 'system']
-        });
-      });
+      // Connection headers
+      const connectHeaders = {
+        'Accept-Version': '1.0,1.1,2.0',
+        'heart-beat': '10000,10000'
+      };
 
-      socketRef.current.on('disconnect', (reason) => {
-        console.log('WebSocket disconnected:', reason);
-        setIsConnected(false);
-        
-        if (reason === 'io server disconnect') {
-          // Server initiated disconnect, try to reconnect
-          setTimeout(() => connect(), 1000);
+      // Connect to STOMP server
+      stompClientRef.current.connect(connectHeaders, 
+        // Success callback
+        (frame) => {
+          console.log('WebSocket connected:', frame);
+          setIsConnected(true);
+          setConnectionError(null);
+          reconnectAttempts.current = 0;
+
+          // Subscribe to different topics
+          subscribeToTopics();
+        },
+        // Error callback
+        (error) => {
+          console.error('WebSocket connection error:', error);
+          setIsConnected(false);
+          setConnectionError(error.toString());
+          handleReconnect();
         }
-      });
-
-      socketRef.current.on('connect_error', (error) => {
-        console.error('WebSocket connection error:', error);
-        setConnectionError(error.message);
-        setIsConnected(false);
-        
-        reconnectAttempts.current += 1;
-        if (reconnectAttempts.current >= maxReconnectAttempts) {
-          toast.error('Failed to connect to real-time updates');
-        }
-      });
-
-      // Real-time data handlers
-      socketRef.current.on('log_entry', (data) => {
-        console.log('New log entry:', data);
-        setLastMessage({ type: 'log_entry', data, timestamp: Date.now() });
-        
-        // Dispatch to Redux store if needed
-        // dispatch(addLogEntry(data));
-      });
-
-      socketRef.current.on('alert', (data) => {
-        console.log('New alert:', data);
-        setLastMessage({ type: 'alert', data, timestamp: Date.now() });
-        
-        // Show toast notification for high severity alerts
-        if (data.severity === 'HIGH' || data.severity === 'CRITICAL') {
-          toast.error(`Alert: ${data.title}`, {
-            duration: 5000,
-            position: 'top-right',
-          });
-        }
-        
-        // Dispatch to Redux store
-        // dispatch(addAlert(data));
-      });
-
-      socketRef.current.on('dashboard_update', (data) => {
-        console.log('Dashboard update:', data);
-        setLastMessage({ type: 'dashboard_update', data, timestamp: Date.now() });
-        
-        // Dispatch to Redux store
-        // dispatch(updateDashboardMetrics(data));
-      });
-
-      socketRef.current.on('system_status', (data) => {
-        console.log('System status update:', data);
-        setLastMessage({ type: 'system_status', data, timestamp: Date.now() });
-        
-        // Handle system status changes
-        if (data.status === 'error') {
-          toast.error(`System Error: ${data.message}`);
-        }
-      });
-
-      // Heartbeat to keep connection alive
-      socketRef.current.on('ping', () => {
-        socketRef.current.emit('pong');
-      });
+      );
 
     } catch (error) {
-      console.error('Failed to initialize WebSocket:', error);
-      setConnectionError(error.message);
+      console.error('Failed to initialize WebSocket connection:', error);
+      setConnectionError(error.toString());
+      handleReconnect();
     }
-  }, [getSocketUrl, dispatch]);
+  }, [getSocketUrl, subscribeToTopics, handleReconnect]);
 
-  // Disconnect WebSocket
+  // Disconnect from WebSocket
   const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-    setIsConnected(false);
-    setConnectionError(null);
-    
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
+
+    if (stompClientRef.current?.connected) {
+      try {
+        stompClientRef.current.disconnect(() => {
+          console.log('WebSocket disconnected');
+          setIsConnected(false);
+        });
+      } catch (error) {
+        console.error('Error disconnecting:', error);
+      }
+    }
+    
+    stompClientRef.current = null;
+    setIsConnected(false);
+    reconnectAttempts.current = 0;
   }, []);
 
-  // Send message through WebSocket
-  const sendMessage = useCallback((event, data) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(event, data);
-      return true;
-    } else {
-      console.warn('WebSocket not connected, cannot send message');
-      return false;
+  // Send message to server
+  const sendMessage = useCallback((destination, message) => {
+    if (stompClientRef.current?.connected) {
+      try {
+        stompClientRef.current.send(destination, {}, JSON.stringify(message));
+        return true;
+      } catch (error) {
+        console.error('Error sending message:', error);
+        return false;
+      }
     }
+    console.warn('Cannot send message - WebSocket not connected');
+    return false;
   }, []);
 
-  // Subscribe to specific channel
-  const subscribe = useCallback((channel) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('subscribe', { channel });
-    }
-  }, []);
+  // Request dashboard metrics refresh
+  const requestMetricsRefresh = useCallback(() => {
+    return sendMessage('/app/dashboard/refresh', { 
+      timestamp: new Date().toISOString() 
+    });
+  }, [sendMessage]);
 
-  // Unsubscribe from specific channel
-  const unsubscribe = useCallback((channel) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('unsubscribe', { channel });
-    }
-  }, []);
+  // Request log search
+  const requestLogSearch = useCallback((query) => {
+    return sendMessage('/app/logs/search', { 
+      query,
+      timestamp: new Date().toISOString()
+    });
+  }, [sendMessage]);
 
-  // Initialize connection on mount
+  // Effect to handle connection lifecycle
   useEffect(() => {
     connect();
 
@@ -183,39 +209,22 @@ export const useWebSocket = () => {
     };
   }, [connect, disconnect]);
 
-  // Handle page visibility changes
+  // Cleanup timeouts on unmount
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Page is hidden, reduce activity
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('page_hidden');
-        }
-      } else {
-        // Page is visible, resume normal activity
-        if (socketRef.current?.connected) {
-          socketRef.current.emit('page_visible');
-        } else {
-          // Reconnect if disconnected while page was hidden
-          connect();
-        }
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
+  }, []);
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [connect]);
-
-  // Return hook interface
   return {
     isConnected,
     connectionError,
     lastMessage,
     sendMessage,
-    subscribe,
-    unsubscribe,
+    requestMetricsRefresh,
+    requestLogSearch,
     connect,
     disconnect,
   };

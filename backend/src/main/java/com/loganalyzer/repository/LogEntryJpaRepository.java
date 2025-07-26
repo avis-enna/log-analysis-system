@@ -17,7 +17,7 @@ import java.util.List;
  * This is used when Elasticsearch is not available.
  */
 @Repository("logEntryJpaRepository")
-public interface LogEntryJpaRepository extends JpaRepository<LogEntry, String> {
+public interface LogEntryJpaRepository extends JpaRepository<LogEntry, String>, LogEntryRepositoryInterface {
     
     // Basic queries
     Page<LogEntry> findByLevel(String level, Pageable pageable);
@@ -184,4 +184,11 @@ public interface LogEntryJpaRepository extends JpaRepository<LogEntry, String> {
 
     @Query("SELECT l.source, COUNT(l) FROM LogEntry l WHERE l.timestamp >= :since GROUP BY l.source ORDER BY COUNT(l) DESC")
     List<Object[]> getLogCountsBySource(@Param("since") LocalDateTime since);
+    
+    // Count queries for dashboard analytics
+    long countByLevelIgnoreCase(String level);
+    long countByCategoryIgnoreCase(String category);
+    long countByMessageContainingIgnoreCase(String message);
+    long countByTimestampAfter(LocalDateTime timestamp);
+    long countByTimestampAfterAndLevelIgnoreCase(LocalDateTime timestamp, String level);
 }

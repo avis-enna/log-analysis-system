@@ -170,6 +170,7 @@ public class LogIngestionService {
      */
     private LogEntry parseLogEntry(String rawLog, String source) {
         LogEntry logEntry = new LogEntry();
+        logEntry.setId(UUID.randomUUID().toString());
         logEntry.setSource(source);
         logEntry.setTimestamp(LocalDateTime.now());
         
