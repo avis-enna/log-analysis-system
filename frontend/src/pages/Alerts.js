@@ -42,51 +42,8 @@ const Alerts = () => {
     dispatch(fetchOpenAlerts());
   }, [dispatch]);
 
-  // Mock alerts data for demonstration
-  const mockAlerts = [
-    {
-      id: 1,
-      title: 'High Error Rate Detected',
-      message: 'Error rate exceeded 5% threshold in web-server',
-      severity: 'HIGH',
-      status: 'OPEN',
-      source: 'web-server',
-      timestamp: new Date(Date.now() - 300000).toISOString(),
-      count: 1,
-    },
-    {
-      id: 2,
-      title: 'Database Connection Timeout',
-      message: 'Multiple database connection timeouts detected',
-      severity: 'CRITICAL',
-      status: 'ACKNOWLEDGED',
-      source: 'database',
-      timestamp: new Date(Date.now() - 600000).toISOString(),
-      count: 5,
-      acknowledgedBy: 'admin',
-    },
-    {
-      id: 3,
-      title: 'Memory Usage Warning',
-      message: 'Memory usage above 80% on api-gateway',
-      severity: 'MEDIUM',
-      status: 'OPEN',
-      source: 'api-gateway',
-      timestamp: new Date(Date.now() - 900000).toISOString(),
-      count: 3,
-    },
-    {
-      id: 4,
-      title: 'Disk Space Low',
-      message: 'Disk space below 10% on log server',
-      severity: 'HIGH',
-      status: 'RESOLVED',
-      source: 'log-server',
-      timestamp: new Date(Date.now() - 1800000).toISOString(),
-      count: 1,
-      resolvedBy: 'ops-team',
-    },
-  ];
+  // Use real alerts data from Redux store instead of mock data
+  const alertsData = alerts.length > 0 ? alerts : [];
 
   // Get severity color
   const getSeverityColor = (severity) => {
@@ -186,7 +143,7 @@ const Alerts = () => {
                   Open Alerts
                 </p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {mockAlerts.filter(a => a.status === 'OPEN').length}
+                  {alertsData.filter(a => a.status === 'OPEN').length}
                 </p>
               </div>
             </div>
@@ -204,7 +161,7 @@ const Alerts = () => {
                   Acknowledged
                 </p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {mockAlerts.filter(a => a.status === 'ACKNOWLEDGED').length}
+                  {alertsData.filter(a => a.status === 'ACKNOWLEDGED').length}
                 </p>
               </div>
             </div>
@@ -222,7 +179,7 @@ const Alerts = () => {
                   Resolved
                 </p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {mockAlerts.filter(a => a.status === 'RESOLVED').length}
+                  {alertsData.filter(a => a.status === 'RESOLVED').length}
                 </p>
               </div>
             </div>
@@ -240,7 +197,7 @@ const Alerts = () => {
                   Critical
                 </p>
                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {mockAlerts.filter(a => a.severity === 'CRITICAL').length}
+                  {alertsData.filter(a => a.severity === 'CRITICAL').length}
                 </p>
               </div>
             </div>
@@ -334,7 +291,7 @@ const Alerts = () => {
                         className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedAlerts(mockAlerts.map(alert => alert.id));
+                            setSelectedAlerts(alertsData.map(alert => alert.id));
                           } else {
                             setSelectedAlerts([]);
                           }
@@ -350,7 +307,7 @@ const Alerts = () => {
                   </tr>
                 </thead>
                 <tbody className="table-body">
-                  {mockAlerts.map((alert) => (
+                                    {alertsData.map((alert) => (
                     <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="table-cell">
                         <input
