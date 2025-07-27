@@ -31,8 +31,10 @@ import {
   fetchLogVolume,
   fetchTopSources,
   fetchErrorTrends,
+  fetchHealthInsights,
   selectStats,
   selectRealtimeMetrics,
+  selectHealthInsights,
   selectLogVolumeData,
   selectTopSourcesData,
   selectErrorTrendsData,
@@ -48,6 +50,7 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const stats = useSelector(selectStats);
   const realtimeMetrics = useSelector(selectRealtimeMetrics);
+  const healthInsights = useSelector(selectHealthInsights);
   const logVolumeData = useSelector(selectLogVolumeData);
   const topSourcesData = useSelector(selectTopSourcesData);
   const errorTrendsData = useSelector(selectErrorTrendsData);
@@ -62,6 +65,7 @@ const Dashboard = () => {
     const fetchData = () => {
       dispatch(fetchDashboardStats());
       dispatch(fetchRealtimeMetrics());
+      dispatch(fetchHealthInsights());
       
       const endTime = new Date();
       const startTime = new Date();
@@ -94,6 +98,7 @@ const Dashboard = () => {
 
   // Format numbers for display
   const formatNumber = (num) => {
+    if (num == null || num === undefined || isNaN(num)) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
@@ -101,6 +106,7 @@ const Dashboard = () => {
 
   // Format percentage
   const formatPercentage = (num) => {
+    if (num == null || num === undefined || isNaN(num)) return '0.0%';
     return `${num.toFixed(1)}%`;
   };
 
@@ -258,12 +264,21 @@ const Dashboard = () => {
 
       {/* Real-time Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* System Health */}
+        {/* Intelligent Health Insights */}
         <div className="card">
           <div className="card-header">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              System Health
+              {healthInsights.title || 'System Health'}
             </h3>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              stats.primaryLogType === 'security' ? 'text-red-600 bg-red-100 dark:bg-red-900/20' :
+              stats.primaryLogType === 'deployment' ? 'text-blue-600 bg-blue-100 dark:bg-blue-900/20' :
+              stats.primaryLogType === 'performance' ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20' :
+              stats.primaryLogType === 'application' ? 'text-green-600 bg-green-100 dark:bg-green-900/20' :
+              'text-gray-600 bg-gray-100 dark:bg-gray-900/20'
+            }`}>
+              {stats.primaryLogType?.toUpperCase() || 'GENERAL'}
+            </span>
           </div>
           <div className="card-body">
             <div className="space-y-4">
@@ -273,25 +288,135 @@ const Dashboard = () => {
                   {stats.systemHealth}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">CPU Usage</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatPercentage(realtimeMetrics.cpuUsage)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Memory Usage</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatPercentage(realtimeMetrics.memoryUsage)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Disk Usage</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {formatPercentage(realtimeMetrics.diskUsage)}
-                </span>
-              </div>
+              
+              {/* Dynamic content based on log type */}
+              {stats.primaryLogType === 'security' && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Auth Failures</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(healthInsights.authenticationFailures || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Security Events</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(healthInsights.securityEvents || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Threat Level</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      healthInsights.threatLevel === 'HIGH' ? 'text-red-600 bg-red-100 dark:bg-red-900/20' :
+                      healthInsights.threatLevel === 'MEDIUM' ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20' :
+                      'text-green-600 bg-green-100 dark:bg-green-900/20'
+                    }`}>
+                      {healthInsights.threatLevel || 'LOW'}
+                    </span>
+                  </div>
+                </>
+              )}
+              
+              {stats.primaryLogType === 'deployment' && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Success Rate</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatPercentage(healthInsights.deploymentSuccessRate || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Deploy Errors</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(healthInsights.deploymentErrors || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Deploy Success</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(healthInsights.deploymentSuccess || 0)}
+                    </span>
+                  </div>
+                </>
+              )}
+              
+              {stats.primaryLogType === 'performance' && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Slow Queries</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(healthInsights.slowQueries || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Perf Warnings</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(healthInsights.performanceWarnings || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      healthInsights.performanceStatus === 'DEGRADED' ? 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20' :
+                      'text-green-600 bg-green-100 dark:bg-green-900/20'
+                    }`}>
+                      {healthInsights.performanceStatus || 'OPTIMAL'}
+                    </span>
+                  </div>
+                </>
+              )}
+              
+              {/* Default content for general or other types */}
+              {(!stats.primaryLogType || stats.primaryLogType === 'general' || 
+                !['security', 'deployment', 'performance'].includes(stats.primaryLogType)) && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Error Rate</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatPercentage(stats.errorRate)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Errors</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(stats.totalErrors)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Warnings</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {formatNumber(stats.totalWarnings)}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
+            
+            {/* Intelligent Recommendations */}
+            {healthInsights.recommendations && healthInsights.recommendations.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Recommendations
+                </h4>
+                <div className="space-y-2">
+                  {healthInsights.recommendations.slice(0, 3).map((rec, index) => (
+                    <div key={index} className="flex items-start space-x-2">
+                      <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                        rec.priority === 'CRITICAL' ? 'bg-red-500' :
+                        rec.priority === 'HIGH' ? 'bg-red-400' :
+                        rec.priority === 'MEDIUM' ? 'bg-yellow-400' :
+                        'bg-gray-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {rec.action}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -306,7 +431,7 @@ const Dashboard = () => {
             <div className="space-y-4">
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary-600">
-                  {realtimeMetrics.logsPerSecond}
+                  {realtimeMetrics?.logsPerSecond ?? 0}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Logs per second
@@ -314,7 +439,7 @@ const Dashboard = () => {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-semibold text-error-600">
-                  {realtimeMetrics.errorsPerMinute}
+                  {realtimeMetrics?.errorsPerMinute ?? 0}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Errors per minute
@@ -335,7 +460,7 @@ const Dashboard = () => {
             <div className="space-y-4">
               <div className="text-center">
                 <p className="text-3xl font-bold text-success-600">
-                  {stats.avgResponseTime}ms
+                  {stats?.avgResponseTime ?? 0}ms
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Average response time
@@ -443,7 +568,10 @@ const Dashboard = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => {
+                      const percentage = percent != null && !isNaN(percent) ? (percent * 100).toFixed(0) : '0';
+                      return `${name} ${percentage}%`;
+                    }}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"

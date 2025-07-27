@@ -153,7 +153,7 @@ const Search = () => {
               </div>
 
               {/* Search Stats */}
-              {searchResults.totalHits > 0 && (
+              {searchResults?.totalHits > 0 && (
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   Found {searchResults.totalHits.toLocaleString()} results in {searchResults.searchTimeMs}ms
                 </div>
@@ -234,7 +234,7 @@ const Search = () => {
         <div className="card-body p-0">
           {isLoading ? (
             <TableSkeleton rows={10} columns={4} />
-          ) : searchResults.logs.length > 0 ? (
+          ) : searchResults?.logs?.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="table">
                 <thead className="table-header">
@@ -245,7 +245,7 @@ const Search = () => {
                         className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedLogs(searchResults.logs.map(log => log.id));
+                            setSelectedLogs(searchResults?.logs?.map(log => log.id) || []);
                           } else {
                             setSelectedLogs([]);
                           }
@@ -259,7 +259,7 @@ const Search = () => {
                   </tr>
                 </thead>
                 <tbody className="table-body">
-                  {searchResults.logs.map((log) => (
+                  {searchResults?.logs?.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="table-cell">
                         <input
@@ -326,26 +326,26 @@ const Search = () => {
         </div>
 
         {/* Pagination */}
-        {searchResults.totalPages > 1 && (
+        {searchResults?.totalPages > 1 && (
           <div className="card-footer">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {((searchResults.page - 1) * searchResults.size) + 1} to{' '}
-                {Math.min(searchResults.page * searchResults.size, searchResults.totalHits)} of{' '}
-                {searchResults.totalHits} results
+                Showing {((searchResults?.page - 1) * searchResults?.size) + 1} to{' '}
+                {Math.min(searchResults?.page * searchResults?.size, searchResults?.totalHits)} of{' '}
+                {searchResults?.totalHits} results
               </div>
               <div className="flex items-center space-x-2">
                 <button
-                  disabled={searchResults.page <= 1}
+                  disabled={searchResults?.page <= 1}
                   className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Page {searchResults.page} of {searchResults.totalPages}
+                  Page {searchResults?.page} of {searchResults?.totalPages}
                 </span>
                 <button
-                  disabled={searchResults.page >= searchResults.totalPages}
+                  disabled={searchResults?.page >= searchResults?.totalPages}
                   className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next

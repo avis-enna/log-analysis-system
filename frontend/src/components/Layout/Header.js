@@ -9,7 +9,8 @@ import {
   SunIcon,
   MoonIcon,
   ComputerDesktopIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { 
   toggleSidebar, 
@@ -19,6 +20,7 @@ import {
   selectNotifications 
 } from '../../store/slices/uiSlice';
 import { selectOpenAlerts } from '../../store/slices/alertsSlice';
+import { logoutUser, selectUser } from '../../store/slices/authSlice';
 
 /**
  * Header component with navigation, search, and user controls
@@ -29,6 +31,7 @@ const Header = () => {
   const theme = useSelector(selectTheme);
   const notifications = useSelector(selectNotifications);
   const openAlerts = useSelector(selectOpenAlerts);
+  const user = useSelector(selectUser);
 
   // Get theme icon
   const getThemeIcon = () => {
@@ -66,11 +69,16 @@ const Header = () => {
     dispatch(openModal({
       modalName: 'confirmDialog',
       props: {
-        title: 'User Menu',
-        message: 'User authentication and profile management will be implemented here.',
-        type: 'info',
-        confirmText: 'OK',
-        onConfirm: () => dispatch({ type: 'ui/closeModal', payload: 'confirmDialog' }),
+        title: 'Logout',
+        message: 'Are you sure you want to logout?',
+        type: 'warning',
+        confirmText: 'Logout',
+        cancelText: 'Cancel',
+        onConfirm: () => {
+          dispatch(logoutUser());
+          dispatch({ type: 'ui/closeModal', payload: 'confirmDialog' });
+          navigate('/login');
+        },
         onCancel: () => dispatch({ type: 'ui/closeModal', payload: 'confirmDialog' }),
       }
     }));
@@ -154,13 +162,35 @@ const Header = () => {
           </button>
 
           {/* User Menu */}
-          <button
-            onClick={handleUserMenuClick}
-            className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-            aria-label="User menu"
-          >
-            <UserCircleIcon className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            {user && (
+              <div className="hidden sm:block text-right">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  Welcome, {user.username}
+                </div>
+                {user.roles && user.roles.length > 0 && (
+                  <div className="flex space-x-1 mt-1">
+                    {user.roles.map((role, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      >
+                        {role.name || role.authority?.replace('ROLE_', '')}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={handleUserMenuClick}
+              className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Logout"
+              title="Logout"
+            >
+              <ArrowRightOnRectangleIcon className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </div>
     </header>

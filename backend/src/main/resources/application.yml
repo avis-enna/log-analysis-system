@@ -57,25 +57,28 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: 1
       retries: 3
       batch-size: 16384
       linger-ms: 5
       buffer-memory: 33554432
+      compression-type: snappy
     consumer:
-      group-id: log-analyzer-group
+      group-id: ${KAFKA_CONSUMER_GROUP:log-processor-group}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
-      enable-auto-commit: false
-      properties:
-        spring.json.trusted.packages: "com.loganalyzer.dto"
+      enable-auto-commit: true
+      auto-commit-interval-ms: 1000
+      max-poll-records: 100
+      fetch-min-bytes: 1
+      fetch-max-wait-ms: 500
     streams:
       application-id: log-analyzer-streams
       properties:
         default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
-        default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
         commit.interval.ms: 1000
         cache.max.bytes.buffering: 10240
         state.dir: ${KAFKA_STREAMS_STATE_DIR:/tmp/kafka-streams}
@@ -115,13 +118,16 @@ influxdb:
 security:
   jwt:
     secret: ${JWT_SECRET:mySecretKey}
-    expiration: 86400000 # 24 hours
+    expiration: ${JWT_EXPIRATION:86400000} # 24 hours
     refresh-expiration: 604800000 # 7 days
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,https://*.railway.app}
     allowed-methods: GET,POST,PUT,DELETE,OPTIONS
     allowed-headers: "*"
     allow-credentials: true
+  cache-timeouts:
+    user-sessions: 3600 # 1 hour
+    system-stats: 30 # 30 seconds
 
 # WebSocket Configuration
 websocket:
@@ -132,10 +138,12 @@ websocket:
 
 # Log Processing Configuration
 log-processing:
-  batch-size: 1000
-  flush-interval: 5000
+  batch-size: ${LOG_BATCH_SIZE:1000}
+  flush-interval: ${LOG_FLUSH_INTERVAL:5000}
   max-queue-size: 10000
   thread-pool-size: 10
+  use-kafka: ${USE_KAFKA:true}
+  use-redis: ${USE_REDIS:true}
   patterns:
     error-keywords: ["ERROR", "FATAL", "EXCEPTION", "FAILED", "TIMEOUT"]
     warning-keywords: ["WARN", "WARNING", "DEPRECATED", "SLOW"]
@@ -234,5 +242,3 @@ app:
     ttl:
       search-results: 300 # 5 minutes
       dashboard-data: 60 # 1 minute
-      user-sessions: 3600 # 1 hour
-      system-stats: 30 # 30 seconds

@@ -71,7 +71,7 @@ public class LogEntry {
     @Field(type = FieldType.Keyword)
     private String thread;
 
-    @Column(name = "stack_trace", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     @Field(type = FieldType.Text)
     private String stackTrace;
 
@@ -84,8 +84,8 @@ public class LogEntry {
 
     @ElementCollection
     @CollectionTable(name = "log_entry_tags", joinColumns = @JoinColumn(name = "log_entry_id"))
-    @MapKeyColumn(name = "tag_key")
-    @Column(name = "tag_value")
+    @MapKeyColumn(name = "tags_key")
+    @Column(name = "tag")
     @Field(type = FieldType.Object)
     private Map<String, String> tags;
 
@@ -104,6 +104,11 @@ public class LogEntry {
     @Column(name = "severity")
     @Field(type = FieldType.Integer)
     private Integer severity;
+    
+    @Column(name = "processed_at")
+    @Field(type = FieldType.Date, format = {}, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+    private LocalDateTime processedAt;
 
     @Column(name = "category", length = 100)
     @Field(type = FieldType.Keyword)
@@ -202,6 +207,13 @@ public class LogEntry {
     
     public Integer getSeverity() { return severity; }
     public void setSeverity(Integer severity) { this.severity = severity; }
+    
+    public LocalDateTime getProcessedAt() { return processedAt; }
+    public void setProcessedAt(LocalDateTime processedAt) { this.processedAt = processedAt; }
+    
+    // Convenience method for Kafka service compatibility
+    public int getSeverityScore() { return severity != null ? severity : 0; }
+    public void setSeverityScore(int severityScore) { this.severity = severityScore; }
     
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }

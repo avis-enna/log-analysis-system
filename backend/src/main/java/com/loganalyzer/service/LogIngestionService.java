@@ -1,5 +1,6 @@
 package com.loganalyzer.service;
 
+import com.loganalyzer.dto.LogEntryDTO;
 import com.loganalyzer.model.LogEntry;
 import com.loganalyzer.repository.LogEntryJpaRepository;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 /**
  * Service for ingesting and processing log entries.
  * Handles real-time log processing, parsing, and indexing.
+ * Integrates with Kafka for high-throughput processing and Redis for caching.
  */
 @Service
 public class LogIngestionService {
@@ -39,11 +41,23 @@ public class LogIngestionService {
     @Autowired
     private AlertService alertService;
     
+    @Autowired
+    private AlertGenerationService alertGenerationService;
+    
+    @Autowired
+    private KafkaLogIngestionService kafkaLogIngestionService;
+    
+    @Autowired
+    private RedisLogCacheService redisLogCacheService;
+    
     @Value("${log-processing.batch-size:1000}")
     private int batchSize;
     
     @Value("${log-processing.flush-interval:5000}")
     private long flushInterval;
+    
+    @Value("${log-processing.use-kafka:true}")
+    private boolean useKafka;
     
     // Processing statistics
     private final AtomicLong processedCount = new AtomicLong(0);
@@ -82,23 +96,17 @@ public class LogIngestionService {
             // Enrich the log entry
             enrichLogEntry(logEntry);
             
-            // Save to Elasticsearch
-            LogEntry savedEntry = logEntryRepository.save(logEntry);
-            
-            // Send to Kafka for real-time processing
-            if (kafkaTemplate != null) {
-                kafkaTemplate.send("log-events", savedEntry);
+            if (useKafka) {
+                // Use Kafka for high-throughput processing
+                LogEntryDTO logEntryDTO = convertToDTO(logEntry);
+                kafkaLogIngestionService.publishLog(logEntryDTO);
+                
+                // Return a placeholder entry for immediate response
+                return CompletableFuture.completedFuture(logEntry);
+            } else {
+                // Direct processing for non-Kafka mode
+                return processLogDirectly(logEntry, source);
             }
-            
-            // Update statistics
-            processedCount.incrementAndGet();
-            sourceStats.computeIfAbsent(source, k -> new AtomicLong(0)).incrementAndGet();
-            
-            // Check for alerts
-            alertService.checkLogForAlerts(savedEntry);
-            
-            logger.debug("Log ingested successfully: {}", savedEntry.getId());
-            return CompletableFuture.completedFuture(savedEntry);
             
         } catch (Exception e) {
             errorCount.incrementAndGet();
@@ -170,6 +178,7 @@ public class LogIngestionService {
      */
     private LogEntry parseLogEntry(String rawLog, String source) {
         LogEntry logEntry = new LogEntry();
+        logEntry.setId(UUID.randomUUID().toString());
         logEntry.setSource(source);
         logEntry.setTimestamp(LocalDateTime.now());
         
@@ -375,9 +384,23 @@ public class LogIngestionService {
             tags.add("http");
         }
         
-        Map<String, String> tagMap = new HashMap<>();
-        tags.forEach(tag -> tagMap.put(tag, "true"));
-        logEntry.setTags(tagMap);
+        // Always add at least one tag to avoid constraint issues
+        if (tags.isEmpty()) {
+            tags.add("general");
+        }
+        
+        // Only set tags if we have non-empty tags
+        if (!tags.isEmpty()) {
+            Map<String, String> tagMap = new HashMap<>();
+            tags.forEach(tag -> {
+                if (tag != null && !tag.trim().isEmpty()) {
+                    tagMap.put(tag.trim(), "true");
+                }
+            });
+            if (!tagMap.isEmpty()) {
+                logEntry.setTags(tagMap);
+            }
+        }
     }
     
     /**
@@ -410,5 +433,56 @@ public class LogIngestionService {
         errorCount.set(0);
         sourceStats.clear();
         logger.info("Ingestion statistics reset");
+    }
+    
+    /**
+     * Convert LogEntry to DTO for Kafka publishing
+     */
+    private LogEntryDTO convertToDTO(LogEntry logEntry) {
+        LogEntryDTO dto = new LogEntryDTO();
+        dto.setMessage(logEntry.getMessage());
+        dto.setLevel(logEntry.getLevel());
+        dto.setSource(logEntry.getSource());
+        dto.setApplication(logEntry.getApplication());
+        dto.setEnvironment(logEntry.getEnvironment());
+        dto.setCategory(logEntry.getCategory());
+        dto.setTimestamp(logEntry.getTimestamp());
+        return dto;
+    }
+    
+    /**
+     * Process log directly without Kafka (fallback mode)
+     */
+    private CompletableFuture<LogEntry> processLogDirectly(LogEntry logEntry, String source) {
+        try {
+            // Save to database
+            LogEntry savedEntry = logEntryRepository.save(logEntry);
+            
+            // Cache in Redis
+            redisLogCacheService.cacheLog(savedEntry);
+            
+            // Send to Kafka for real-time processing (if available)
+            if (kafkaTemplate != null) {
+                kafkaTemplate.send("log-events", savedEntry);
+            }
+            
+            // Update statistics
+            processedCount.incrementAndGet();
+            sourceStats.computeIfAbsent(source, k -> new AtomicLong(0)).incrementAndGet();
+            
+            // Check for alerts
+            alertService.checkLogForAlerts(savedEntry);
+            
+            // Generate real-time alerts based on this log entry
+            alertGenerationService.analyzeLogAndGenerateAlerts(savedEntry);
+            
+            logger.debug("Log processed directly: {}", savedEntry.getId());
+            return CompletableFuture.completedFuture(savedEntry);
+            
+        } catch (Exception e) {
+            logger.error("Error processing log directly: {}", e.getMessage(), e);
+            errorCount.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        }
     }
 }
