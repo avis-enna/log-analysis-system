@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { store } from './store/store';
 import { useWebSocket } from './hooks/useWebSocket';
+import { initializeAuth, selectIsAuthenticated } from './store/slices/authSlice';
 import Layout from './components/Layout/Layout';
+import Login from './components/Login/Login';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Search from './pages/Search';
 import Analytics from './pages/Analytics';
@@ -12,9 +15,12 @@ import Alerts from './pages/Alerts';
 import Settings from './pages/Settings';
 import Upload from './pages/Upload';
 import Documentation from './pages/Documentation';
+import RoleManagement from './pages/RoleManagement';
+import DemoAccounts from './pages/DemoAccounts';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner';
 import NotFound from './components/NotFound/NotFound';
+import ConfirmDialog from './components/ConfirmDialog/ConfirmDialog';
 import './App.css';
 
 /**
@@ -27,12 +33,19 @@ import './App.css';
  * - Error boundaries for graceful error handling
  * - Hot toast notifications
  * - Responsive layout
+ * - Authentication system
  */
 function AppContent() {
   const { isConnected, connectionError } = useWebSocket();
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
 
   useEffect(() => {
+    // Initialize auth state from localStorage
+    dispatch(initializeAuth());
+    
     // Initialize application
+    // eslint-disable-next-line no-console
     console.log('Log Analysis System initialized');
     
     // Set up performance monitoring
@@ -46,7 +59,7 @@ function AppContent() {
         window.performance.measure('app-duration', 'app-start', 'app-end');
       }
     };
-  }, []);
+  }, [dispatch]);
 
   return (
     <ErrorBoundary>
@@ -70,17 +83,62 @@ function AppContent() {
           <Layout>
             <React.Suspense fallback={<LoadingSpinner />}>
               <Routes>
-                {/* Default route redirects to dashboard */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                {/* Login route */}
+                <Route path="/login" element={
+                  isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+                } />
                 
-                {/* Main application routes */}
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/alerts" element={<Alerts />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/docs" element={<Documentation />} />
+                {/* Default route redirects to dashboard if authenticated, login if not */}
+                <Route path="/" element={
+                  <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
+                } />
+                
+                {/* Protected routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/search" element={
+                  <ProtectedRoute>
+                    <Search />
+                  </ProtectedRoute>
+                } />
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                } />
+                <Route path="/alerts" element={
+                  <ProtectedRoute>
+                    <Alerts />
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } />
+                <Route path="/upload" element={
+                  <ProtectedRoute>
+                    <Upload />
+                  </ProtectedRoute>
+                } />
+                <Route path="/docs" element={
+                  <ProtectedRoute>
+                    <Documentation />
+                  </ProtectedRoute>
+                } />
+                <Route path="/roles" element={
+                  <ProtectedRoute>
+                    <RoleManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="/demo" element={
+                  <ProtectedRoute>
+                    <DemoAccounts />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Catch-all route for 404 */}
                 <Route path="*" element={<NotFound />} />
@@ -113,6 +171,9 @@ function AppContent() {
               },
             }}
           />
+
+          {/* Global Modals */}
+          <ConfirmDialog />
         </div>
       </Router>
     </ErrorBoundary>

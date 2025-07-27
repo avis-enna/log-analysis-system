@@ -1,393 +1,120 @@
 import axios from 'axios';
 
-/**
- * API Configuration
- */
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
-
-// Create axios instance with default configuration
+// Create the base API client
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds
+  baseURL: process.env.NODE_ENV === 'production' ? '/api/v1' : 'http://localhost:8080/api/v1',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor for adding auth tokens, logging, etc.
+// Add authentication interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add timestamp to requests for debugging
-    config.metadata = { startTime: new Date() };
-    
     // Add auth token if available
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Use basic auth for admin:admin123 as fallback
+      const credentials = btoa('admin:admin123');
+      config.headers.Authorization = `Basic ${credentials}`;
     }
     
-    // Log request in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    }
-    
+    console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor for error handling, logging, etc.
+// Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => {
-    // Calculate request duration
-    const duration = new Date() - response.config.metadata.startTime;
-    
-    // Log response in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ API Response: ${response.status} ${response.config.url} (${duration}ms)`);
-    }
-    
+    console.log('API Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
-    // Calculate request duration
-    const duration = error.config?.metadata ? 
-      new Date() - error.config.metadata.startTime : 0;
+    console.error('API Error:', error.response?.status, error.config?.url, error.message);
     
-    // Log error in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`❌ API Error: ${error.response?.status || 'Network'} ${error.config?.url} (${duration}ms)`, error);
-    }
-    
-    // Handle specific error cases
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
+      // Handle unauthorized access
       localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      // Don't redirect here, let components handle it
     }
     
     return Promise.reject(error);
   }
 );
 
-/**
- * Search API endpoints
- */
-export const searchAPI = {
-  // Comprehensive search
-  search: (searchQuery) => {
-    return apiClient.post('/search', searchQuery);
-  },
-  
-  // Quick search
-  quickSearch: (query, page = 1, size = 100) => {
-    return apiClient.get('/search/quick', {
-      params: { q: query, page, size }
-    });
-  },
-  
-  // Search errors
-  searchErrors: (startTime, endTime, page = 1, size = 100) => {
-    return apiClient.get('/search/errors', {
-      params: { startTime, endTime, page, size }
-    });
-  },
-  
-  // Search by application
-  searchByApplication: (application, environment, startTime, endTime, page = 1, size = 100) => {
-    return apiClient.get(`/search/application/${application}`, {
-      params: { environment, startTime, endTime, page, size }
-    });
-  },
-  
-  // Search by pattern
-  searchByPattern: (pattern, mode = 'WILDCARD', startTime, endTime, page = 1, size = 100) => {
-    return apiClient.get('/search/pattern', {
-      params: { pattern, mode, startTime, endTime, page, size }
-    });
-  },
-  
-  // Get statistics
-  getStatistics: (startTime, endTime) => {
-    return apiClient.get('/search/stats', {
-      params: { startTime, endTime }
-    });
-  },
-  
-  // Get field suggestions
-  getFieldSuggestions: (fieldName, prefix = '', limit = 10) => {
-    return apiClient.get(`/search/suggest/${fieldName}`, {
-      params: { prefix, limit }
-    });
-  },
-  
-  // Get available fields
-  getAvailableFields: () => {
-    return apiClient.get('/search/fields');
-  },
-  
-  // Validate query
-  validateQuery: (searchQuery) => {
-    return apiClient.post('/search/validate', searchQuery);
-  },
-  
-  // Get search history
-  getSearchHistory: (limit = 20) => {
-    return apiClient.get('/search/history', {
-      params: { limit }
-    });
-  },
-  
-  // Save search
-  saveSearch: (name, query) => {
-    return apiClient.post('/search/save', query, {
-      params: { name }
-    });
-  },
-  
-  // Get saved searches
-  getSavedSearches: () => {
-    return apiClient.get('/search/saved');
-  },
-};
-
-/**
- * Alerts API endpoints
- */
-export const alertsAPI = {
-  // Get all alerts
-  getAlerts: (page = 1, size = 50) => {
-    return apiClient.get('/alerts', {
-      params: { page, size }
-    });
-  },
-  
-  // Get open alerts
-  getOpenAlerts: () => {
-    return apiClient.get('/alerts/open');
-  },
-  
-  // Get alerts by severity
-  getAlertsBySeverity: (severity) => {
-    return apiClient.get(`/alerts/severity/${severity}`);
-  },
-  
-  // Acknowledge alert
-  acknowledgeAlert: (alertId, acknowledgedBy) => {
-    return apiClient.post(`/alerts/${alertId}/acknowledge`, {
-      acknowledgedBy
-    });
-  },
-  
-  // Resolve alert
-  resolveAlert: (alertId, resolvedBy, notes) => {
-    return apiClient.post(`/alerts/${alertId}/resolve`, {
-      resolvedBy,
-      notes
-    });
-  },
-  
-  // Get alert statistics
-  getAlertStats: () => {
-    return apiClient.get('/alerts/stats');
-  },
-  
-  // Create alert rule
-  createAlertRule: (rule) => {
-    return apiClient.post('/alerts/rules', rule);
-  },
-  
-  // Get alert rules
-  getAlertRules: () => {
-    return apiClient.get('/alerts/rules');
-  },
-  
-  // Update alert rule
-  updateAlertRule: (ruleId, rule) => {
-    return apiClient.put(`/alerts/rules/${ruleId}`, rule);
-  },
-  
-  // Delete alert rule
-  deleteAlertRule: (ruleId) => {
-    return apiClient.delete(`/alerts/rules/${ruleId}`);
-  },
-};
-
-/**
- * Dashboard API endpoints
- */
+// Dashboard API endpoints
 export const dashboardAPI = {
-  // Get dashboard statistics
-  getStats: () => {
-    return apiClient.get('/dashboard/stats');
-  },
-  
-  // Get real-time metrics
-  getRealtimeMetrics: () => {
-    return apiClient.get('/dashboard/realtime');
-  },
-  
-  // Get log volume over time
-  getLogVolume: (startTime, endTime, interval = 'hour') => {
-    return apiClient.get('/dashboard/volume', {
-      params: { startTime, endTime, interval }
-    });
-  },
-  
-  // Get top sources
-  getTopSources: (limit = 10) => {
-    return apiClient.get('/dashboard/top-sources', {
-      params: { limit }
-    });
-  },
-  
-  // Get error trends
-  getErrorTrends: (startTime, endTime) => {
-    return apiClient.get('/dashboard/error-trends', {
-      params: { startTime, endTime }
-    });
-  },
-  
-  // Get system health
-  getSystemHealth: () => {
-    return apiClient.get('/dashboard/health');
-  },
-  
-  // Get intelligent health insights based on log analysis
-  getHealthInsights: () => {
-    return apiClient.get('/dashboard/health-insights');
-  },
+  getStats: () => apiClient.get('/dashboard/stats'),
+  getRecentLogs: () => apiClient.get('/dashboard/recent-logs'),
+  getLogLevels: () => apiClient.get('/dashboard/log-levels'),
+  getTopSources: () => apiClient.get('/dashboard/top-sources'),
+  getHourlyTrends: () => apiClient.get('/dashboard/hourly-trends'),
+  getErrorTrends: () => apiClient.get('/dashboard/error-trends'),
+  getSystemHealth: () => apiClient.get('/dashboard/system-health'),
+  getAlerts: () => apiClient.get('/dashboard/alerts'),
 };
 
-/**
- * Analytics API endpoints
- */
+// Search API endpoints
+export const searchAPI = {
+  searchLogs: (params) => apiClient.get('/search', { params }),
+  getFilters: () => apiClient.get('/search/filters'),
+  saveSearch: (searchData) => apiClient.post('/search/saved', searchData),
+  getSavedSearches: () => apiClient.get('/search/saved'),
+  deleteSavedSearch: (id) => apiClient.delete(`/search/saved/${id}`),
+};
+
+// Alerts API endpoints
+export const alertsAPI = {
+  getAlerts: (params) => apiClient.get('/alerts', { params }),
+  getAlert: (id) => apiClient.get(`/alerts/${id}`),
+  createAlert: (alertData) => apiClient.post('/alerts', alertData),
+  updateAlert: (id, alertData) => apiClient.put(`/alerts/${id}`, alertData),
+  deleteAlert: (id) => apiClient.delete(`/alerts/${id}`),
+  acknowledgeAlert: (id) => apiClient.post(`/alerts/${id}/acknowledge`),
+  getAlertStats: () => apiClient.get('/alerts/stats'),
+};
+
+// Analytics API endpoints
 export const analyticsAPI = {
-  // Get log analytics
-  getLogAnalytics: (startTime, endTime, groupBy = 'hour') => {
-    return apiClient.get('/analytics/logs', {
-      params: { startTime, endTime, groupBy }
-    });
-  },
-  
-  // Get performance metrics
-  getPerformanceMetrics: (startTime, endTime) => {
-    return apiClient.get('/analytics/performance', {
-      params: { startTime, endTime }
-    });
-  },
-  
-  // Get error analysis
-  getErrorAnalysis: (startTime, endTime) => {
-    return apiClient.get('/analytics/errors', {
-      params: { startTime, endTime }
-    });
-  },
-  
-  // Get usage patterns
-  getUsagePatterns: (startTime, endTime) => {
-    return apiClient.get('/analytics/patterns', {
-      params: { startTime, endTime }
-    });
-  },
-  
-  // Export analytics data
-  exportData: (format, startTime, endTime, filters = {}) => {
-    return apiClient.post('/analytics/export', {
-      format,
-      startTime,
-      endTime,
-      filters
-    }, {
-      responseType: 'blob'
-    });
-  },
+  getMetrics: (timeRange) => apiClient.get('/analytics/metrics', { params: { timeRange } }),
+  getTrendData: (metric, timeRange) => apiClient.get('/analytics/trends', { params: { metric, timeRange } }),
+  getTopErrors: (timeRange) => apiClient.get('/analytics/top-errors', { params: { timeRange } }),
+  getPerformanceMetrics: () => apiClient.get('/analytics/performance'),
 };
 
-/**
- * Settings API endpoints
- */
+// Settings API endpoints
 export const settingsAPI = {
-  // Get user settings
-  getUserSettings: () => {
-    return apiClient.get('/settings/user');
-  },
-  
-  // Update user settings
-  updateUserSettings: (settings) => {
-    return apiClient.put('/settings/user', settings);
-  },
-  
-  // Get system settings
-  getSystemSettings: () => {
-    return apiClient.get('/settings/system');
-  },
-  
-  // Update system settings
-  updateSystemSettings: (settings) => {
-    return apiClient.put('/settings/system', settings);
-  },
-  
-  // Test notification settings
-  testNotification: (channel, recipient) => {
-    return apiClient.post('/settings/test-notification', {
-      channel,
-      recipient
-    });
-  },
+  getSettings: () => apiClient.get('/settings'),
+  updateSettings: (settings) => apiClient.put('/settings', settings),
+  getNotificationSettings: () => apiClient.get('/settings/notifications'),
+  updateNotificationSettings: (settings) => apiClient.put('/settings/notifications', settings),
+  getRetentionSettings: () => apiClient.get('/settings/retention'),
+  updateRetentionSettings: (settings) => apiClient.put('/settings/retention', settings),
 };
 
-/**
- * Utility functions
- */
-export const apiUtils = {
-  // Check if API is healthy
-  healthCheck: () => {
-    return apiClient.get('/health');
-  },
-  
-  // Get API version
-  getVersion: () => {
-    return apiClient.get('/version');
-  },
-  
-  // Get API documentation
-  getApiDocs: () => {
-    return apiClient.get('/docs');
-  },
-};
-
-/**
- * Upload API endpoints
- */
+// Upload API endpoints
 export const uploadAPI = {
-  // Upload log file
-  uploadLogFile: (file, source) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (source) {
-      formData.append('source', source);
-    }
-    
-    return apiClient.post('/logs/upload/file', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-  },
+  uploadLogs: (formData) => apiClient.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  getUploadHistory: () => apiClient.get('/upload/history'),
+};
 
-  // Upload log text
-  uploadLogText: (text, source) => {
-    const formData = new FormData();
-    formData.append('text', text);
-    if (source) {
-      formData.append('source', source);
-    }
-    
-    return apiClient.post('/logs/upload/text', formData);
-  },
+// Authentication API endpoints
+export const authAPI = {
+  login: (credentials) => apiClient.post('/auth/login', credentials),
+  logout: () => apiClient.post('/auth/logout'),
+  verifyToken: () => apiClient.get('/auth/verify'),
 };
 
 // Export the configured axios instance for custom requests
@@ -395,13 +122,14 @@ export { apiClient };
 
 // Export default API object
 const api = {
+  dashboard: dashboardAPI,
   search: searchAPI,
   alerts: alertsAPI,
-  dashboard: dashboardAPI,
   analytics: analyticsAPI,
   settings: settingsAPI,
   upload: uploadAPI,
-  utils: apiUtils,
+  auth: authAPI,
+  client: apiClient,
 };
 
 export default api;

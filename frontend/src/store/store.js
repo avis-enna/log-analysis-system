@@ -4,6 +4,7 @@ import alertsReducer from './slices/alertsSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import settingsReducer from './slices/settingsSlice';
 import uiReducer from './slices/uiSlice';
+import authReducer from './slices/authSlice';
 
 /**
  * Redux store configuration using Redux Toolkit
@@ -22,6 +23,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     settings: settingsReducer,
     ui: uiReducer,
+    auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

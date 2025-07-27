@@ -73,31 +73,10 @@ services:
     networks:
       - log-analysis-network
     restart: unless-stopped
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9092:9092"
-    networks:
-      - log-analysis-network
-
-  # Zookeeper (required for Kafka)
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: log-analysis-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    networks:
-      - log-analysis-network
 
   # Log Analysis Application
   app:
-    build: .
+    build: ./backend
     container_name: log-analysis-app
     depends_on:
       - postgres
@@ -108,17 +87,18 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/log_analysis_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: password
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
       SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
     networks:
       - log-analysis-network
+    restart: unless-stopped
 
   # Prometheus (for monitoring)
   prometheus:
@@ -130,6 +110,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - log-analysis-network
+    restart: unless-stopped
 
   # Grafana (for dashboards)
   grafana:
@@ -138,11 +119,12 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     ports:
-      - "3000:3000"
+      - "4000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
       - log-analysis-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

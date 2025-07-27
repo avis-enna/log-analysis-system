@@ -17,14 +17,15 @@ import java.util.Arrays;
  * Disables authentication and enables CORS for frontend-backend communication.
  */
 @Configuration
+@Profile("local")
 @EnableWebSecurity
 public class LocalSecurityConfiguration {
 
-    @Bean
+    @Bean("localFilterChain")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors -> cors.configurationSource(localCorsConfigurationSource()))
             .authorizeHttpRequests(authz -> authz
                 .anyRequest().permitAll()
             )
@@ -35,8 +36,8 @@ public class LocalSecurityConfiguration {
         return http.build();
     }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    @Bean("localCorsConfigurationSource")
+    public CorsConfigurationSource localCorsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));

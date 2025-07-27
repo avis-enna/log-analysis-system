@@ -1,8 +1,11 @@
 package com.loganalyzer.controller;
 
 import com.loganalyzer.repository.LogEntryJpaRepository;
+import com.loganalyzer.service.KafkaLogIngestionService;
+import com.loganalyzer.service.RedisLogCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,6 +22,12 @@ public class DashboardController {
 
     @Autowired
     private LogEntryJpaRepository logEntryRepository;
+    
+    @Autowired(required = false)
+    private KafkaLogIngestionService kafkaLogIngestionService;
+    
+    @Autowired(required = false)
+    private RedisLogCacheService redisLogCacheService;
 
     /**
      * Get dashboard statistics - intelligently analyzed from actual logs
@@ -638,6 +647,134 @@ public class DashboardController {
             return ResponseEntity.ok(trends);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Arrays.asList(Map.of("error", e.getMessage())));
+        }
+    }
+    
+    /**
+     * Get system integration status - shows Kafka, Redis, and other service health
+     */
+    @GetMapping("/system-health")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEVELOPER', 'QA')")
+    public ResponseEntity<Map<String, Object>> getSystemHealth() {
+        try {
+            Map<String, Object> health = new HashMap<>();
+            
+            // Database health
+            try {
+                long totalLogs = logEntryRepository.count();
+                health.put("database", Map.of(
+                    "status", "UP",
+                    "totalLogs", totalLogs,
+                    "type", "PostgreSQL"
+                ));
+            } catch (Exception e) {
+                health.put("database", Map.of(
+                    "status", "DOWN",
+                    "error", e.getMessage(),
+                    "type", "PostgreSQL"
+                ));
+            }
+            
+            // Kafka health
+            if (kafkaLogIngestionService != null) {
+                boolean kafkaHealthy = kafkaLogIngestionService.isKafkaHealthy();
+                health.put("kafka", Map.of(
+                    "status", kafkaHealthy ? "UP" : "DOWN",
+                    "type", "Apache Kafka",
+                    "description", "High-throughput log ingestion"
+                ));
+            } else {
+                health.put("kafka", Map.of(
+                    "status", "DISABLED",
+                    "type", "Apache Kafka",
+                    "description", "Not configured"
+                ));
+            }
+            
+            // Redis health
+            if (redisLogCacheService != null) {
+                boolean redisHealthy = redisLogCacheService.isRedisHealthy();
+                health.put("redis", Map.of(
+                    "status", redisHealthy ? "UP" : "DOWN",
+                    "type", "Redis Cache",
+                    "description", "Real-time caching and metrics"
+                ));
+            } else {
+                health.put("redis", Map.of(
+                    "status", "DISABLED",
+                    "type", "Redis Cache",
+                    "description", "Not configured"
+                ));
+            }
+            
+            // Overall system health
+            boolean allUp = true;
+            for (Object service : health.values()) {
+                if (service instanceof Map) {
+                    Map<String, Object> serviceMap = (Map<String, Object>) service;
+                    if (!"UP".equals(serviceMap.get("status"))) {
+                        allUp = false;
+                    }
+                }
+            }
+            
+            health.put("overall", Map.of(
+                "status", allUp ? "UP" : "DEGRADED",
+                "timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                "integration", "Kafka + Redis + PostgreSQL"
+            ));
+            
+            return ResponseEntity.ok(health);
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Get cached metrics from Redis (fast access)
+     */
+    @GetMapping("/cached-metrics")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEVELOPER', 'QA')")
+    public ResponseEntity<Map<String, Object>> getCachedMetrics() {
+        try {
+            Map<String, Object> metrics = new HashMap<>();
+            
+            if (redisLogCacheService != null) {
+                // Get real-time stats from Redis cache
+                Map<String, Object> realtimeStats = redisLogCacheService.getRealtimeStats();
+                metrics.put("realtime", realtimeStats);
+                
+                // Get source counts from cache
+                Map<String, Long> sourceCounts = redisLogCacheService.getLogCountsBySource();
+                metrics.put("sources", sourceCounts);
+                
+                // Get hourly stats
+                List<Map<String, Object>> hourlyStats = redisLogCacheService.getHourlyStats(24);
+                metrics.put("hourly", hourlyStats);
+                
+                metrics.put("cacheStatus", "ENABLED");
+            } else {
+                metrics.put("cacheStatus", "DISABLED");
+                metrics.put("message", "Redis cache not available - using database queries");
+                
+                // Fallback to database
+                long totalLogs = logEntryRepository.count();
+                long errors = logEntryRepository.countByLevelIgnoreCase("ERROR");
+                
+                metrics.put("realtime", Map.of(
+                    "totalLogs", totalLogs,
+                    "totalErrors", errors,
+                    "source", "database"
+                ));
+            }
+            
+            metrics.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            
+            return ResponseEntity.ok(metrics);
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 }

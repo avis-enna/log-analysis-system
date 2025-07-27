@@ -11,6 +11,8 @@ import {
   CloudArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  UsersIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -18,6 +20,7 @@ import {
   ChartBarIcon as ChartBarIconSolid,
   ExclamationTriangleIcon as ExclamationTriangleIconSolid,
   Cog6ToothIcon as Cog6ToothIconSolid,
+  UsersIcon as UsersIconSolid,
 } from '@heroicons/react/24/solid';
 import { 
   selectSidebarOpen, 
@@ -26,6 +29,7 @@ import {
   toggleSidebarCollapsed 
 } from '../../store/slices/uiSlice';
 import { selectOpenAlerts } from '../../store/slices/alertsSlice';
+import { selectIsAdmin } from '../../store/slices/authSlice';
 
 /**
  * Sidebar navigation component
@@ -36,6 +40,7 @@ const Sidebar = () => {
   const sidebarOpen = useSelector(selectSidebarOpen);
   const sidebarCollapsed = useSelector(selectSidebarCollapsed);
   const openAlerts = useSelector(selectOpenAlerts);
+  const isAdmin = useSelector(selectIsAdmin);
 
   // Navigation items
   const navigationItems = [
@@ -75,6 +80,13 @@ const Sidebar = () => {
       iconSolid: Cog6ToothIconSolid,
       description: 'System configuration',
     },
+    ...(isAdmin ? [{
+      name: 'Role Management',
+      href: '/roles',
+      icon: UsersIcon,
+      iconSolid: UsersIconSolid,
+      description: 'Manage user roles and permissions',
+    }] : []),
   ];
 
   // Additional tools
@@ -84,6 +96,12 @@ const Sidebar = () => {
       href: '/upload',
       icon: CloudArrowUpIcon,
       description: 'Upload log files',
+    },
+    {
+      name: 'Demo Accounts',
+      href: '/demo',
+      icon: AcademicCapIcon,
+      description: 'Demo user accounts and scenarios',
     },
     {
       name: 'Documentation',

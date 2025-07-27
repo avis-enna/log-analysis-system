@@ -129,7 +129,14 @@ const initialState = {
   logVolumeData: [],
   topSourcesData: [],
   errorTrendsData: [],
-  isLoading: false,
+  isLoading: {
+    stats: false,
+    realtimeMetrics: false,
+    healthInsights: false,
+    logVolume: false,
+    topSources: false,
+    errorTrends: false,
+  },
   error: null,
 };
 
@@ -149,75 +156,75 @@ const dashboardSlice = createSlice({
     builder
       // Fetch dashboard stats
       .addCase(fetchDashboardStats.pending, (state) => {
-        state.isLoading = true;
+        state.isLoading.stats = true;
         state.error = null;
       })
       .addCase(fetchDashboardStats.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.stats = false;
         state.stats = action.payload;
       })
       .addCase(fetchDashboardStats.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.stats = false;
         state.error = action.payload;
       })
       // Fetch realtime metrics
       .addCase(fetchRealtimeMetrics.pending, (state) => {
-        state.isLoading = true;
+        state.isLoading.realtimeMetrics = true;
       })
       .addCase(fetchRealtimeMetrics.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.realtimeMetrics = false;
         state.realtimeMetrics = action.payload;
       })
       .addCase(fetchRealtimeMetrics.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.realtimeMetrics = false;
         state.error = action.payload;
       })
       // Fetch health insights
       .addCase(fetchHealthInsights.pending, (state) => {
-        state.isLoading = true;
+        state.isLoading.healthInsights = true;
       })
       .addCase(fetchHealthInsights.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.healthInsights = false;
         state.healthInsights = action.payload;
       })
       .addCase(fetchHealthInsights.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.healthInsights = false;
         state.error = action.payload;
       })
-      // Fetch log volume data
+      // Fetch log volume
       .addCase(fetchLogVolume.pending, (state) => {
-        state.isLoading = true;
+        state.isLoading.logVolume = true;
       })
       .addCase(fetchLogVolume.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.logVolume = false;
         state.logVolumeData = action.payload;
       })
       .addCase(fetchLogVolume.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.logVolume = false;
         state.error = action.payload;
       })
-      // Fetch top sources data
+      // Fetch top sources
       .addCase(fetchTopSources.pending, (state) => {
-        state.isLoading = true;
+        state.isLoading.topSources = true;
       })
       .addCase(fetchTopSources.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.topSources = false;
         state.topSourcesData = action.payload;
       })
       .addCase(fetchTopSources.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.topSources = false;
         state.error = action.payload;
       })
-      // Fetch error trends data
+      // Fetch error trends
       .addCase(fetchErrorTrends.pending, (state) => {
-        state.isLoading = true;
+        state.isLoading.errorTrends = true;
       })
       .addCase(fetchErrorTrends.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.errorTrends = false;
         state.errorTrendsData = action.payload;
       })
       .addCase(fetchErrorTrends.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isLoading.errorTrends = false;
         state.error = action.payload;
       });
   },
